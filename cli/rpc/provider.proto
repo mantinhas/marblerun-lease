@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package providerRPC;
+option go_package = "rpc/";
+
+service Provider {
+  rpc Ping (PingReq) returns (PingResp);
+}
+
+message PingReq {
+  string cert = 1;
+  bytes quote = 2;
+}
+
+message PingResp {
+  bool ok = 1;
+}

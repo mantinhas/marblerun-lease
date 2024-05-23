@@ -1,0 +1,81 @@
+FROM ghcr.io/edgelesssys/marblerun/build-base:v1.1.0 AS build
+
+# don't run `apt-get update` because required packages are cached in build-base for reproducibility
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  build-essential \
+  ca-certificates \
+  clang-10 \
+  cmake \
+  git \
+  libssl-dev \
+  ninja-build \
+  wget
+
+ARG erttag=v0.3.8
+ARG mrtag=v1.1.0
+RUN wget -qO- https://golang.org/dl/go1.20.2.linux-amd64.tar.gz | tar -C /usr/local -xz \
+  && git clone -b $erttag --depth=1 https://github.com/edgelesssys/edgelessrt \
+  && git clone -b $mrtag --depth=1 https://github.com/edgelesssys/marblerun \
+  && mkdir ertbuild mrbuild
+
+# install ert
+RUN cd edgelessrt && export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) && cd /ertbuild \
+  && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF /edgelessrt \
+  && ninja install
+
+# build marblerun
+ARG production=OFF
+RUN --mount=type=secret,id=signingkey,dst=/mrbuild/private.pem,required=true \
+  cd marblerun && export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct) && cd /mrbuild \
+  && . /opt/edgelessrt/share/openenclave/openenclaverc \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DPRODUCTION=$production /marblerun \
+  && PATH=$PATH:/usr/local/go/bin make -j`nproc`
+
+FROM scratch AS export
+COPY --from=build \
+  /mrbuild/coordinator-enclave.signed \
+  /mrbuild/coordinator-config.json \
+  /mrbuild/coordinator-noenclave \
+  /mrbuild/marblerun \
+  /mrbuild/marble-injector \
+  /mrbuild/premain-libos \
+  /opt/edgelessrt/bin/erthost \
+  /
+
+# the coordinator container image
+FROM ubuntu:focal-20230308 AS release
+ARG PSW_VERSION=2.19.100.3-focal1
+ARG DCAP_VERSION=1.16.100.2-focal1
+ARG AZ_VERSION=1.11.2
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gnupg libcurl4 wget \
+  && wget -qO- https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add \
+  && echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' >> /etc/apt/sources.list \
+  && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | apt-key add \
+  && echo 'deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod focal main' >> /etc/apt/sources.list \
+  && apt-get update && apt-get install -y --no-install-recommends \
+  libsgx-ae-id-enclave=$DCAP_VERSION \
+  libsgx-ae-pce=$PSW_VERSION \
+  libsgx-ae-qe3=$DCAP_VERSION \
+  libsgx-dcap-ql=$DCAP_VERSION \
+  libsgx-enclave-common=$PSW_VERSION \
+  libsgx-launch=$PSW_VERSION \
+  libsgx-pce-logic=$DCAP_VERSION \
+  libsgx-qe3-logic=$DCAP_VERSION \
+  libsgx-urts=$PSW_VERSION \
+  libsgx-dcap-default-qpl=$DCAP_VERSION \
+  az-dcap-client=$AZ_VERSION \
+  && apt-get autoremove -y && apt-get clean -y
+
+# create backup of libdcap_quoteprov.so.1 and libsgx_default_qcnl_wrapper.so.1 and remove libsgx-dcap-default-qpl
+RUN mkdir /usr/lib/x86_64-linux-gnu/dcap \
+  && cp /usr/lib/x86_64-linux-gnu/libsgx_default_qcnl_wrapper.so.1 /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so.1 /usr/lib/x86_64-linux-gnu/dcap \
+  && apt remove -y libsgx-dcap-default-qpl \
+  && ln -s /usr/lib/x86_64-linux-gnu/dcap/libsgx_default_qcnl_wrapper.so.1 /usr/lib/x86_64-linux-gnu/libsgx_default_qcnl_wrapper.so.1 \
+  && ln -s /usr/lib/x86_64-linux-gnu/dcap/libdcap_quoteprov.so.1 /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so.intel
+
+COPY --from=build /mrbuild/coordinator-enclave.signed /mrbuild/coordinator-config.json /marblerun/dockerfiles/start.sh /
+COPY --from=build /opt/edgelessrt/bin/erthost /opt/edgelessrt/bin/
+RUN chgrp -R 0 /usr/lib/ && chmod -R g=u /usr/lib/
+ENV PATH=${PATH}:/opt/edgelessrt/bin
+ENV AZDCAP_DEBUG_LOG_LEVEL=ERROR
+ENTRYPOINT ["/start.sh"]

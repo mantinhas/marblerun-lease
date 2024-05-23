@@ -1,0 +1,130 @@
+{
+	"Packages": {
+		"web": {
+			"Debug": true,
+			"SecurityVersion": 1,
+			"ProductID": 4,
+			"SignerID": "43361affedeb75affee9baec7e054a5e14883213e5a121b67d74a0e12e9d2b7a"
+		},
+		"emoji-svc": {
+			"Debug": true,
+			"SecurityVersion": 1,
+			"ProductID": 5,
+			"SignerID": "43361affedeb75affee9baec7e054a5e14883213e5a121b67d74a0e12e9d2b7a"
+		},
+		"voting-svc": {
+			"Debug": true,
+			"SecurityVersion": 1,
+			"ProductID": 6,
+			"SignerID": "43361affedeb75affee9baec7e054a5e14883213e5a121b67d74a0e12e9d2b7a"
+		}
+	},
+	"Infrastructures": {
+		"Azure": {}
+	},
+	"Marbles": {
+		"web": {
+			"Package": "web",
+			"Parameters": {
+				"Env": {
+					"WEB_PORT": "4433",
+					"EMOJISVC_HOST": "emoji-svc.emojivoto:8080",
+					"VOTINGSVC_HOST": "voting-svc.emojivoto:8080",
+					"INDEX_BUNDLE": "/edg/hostfs/dist/index_bundle.js"
+				}
+			},
+			"TLS": [
+				"web"
+			]
+		},
+		"emoji-svc": {
+			"Package": "emoji-svc",
+			"Parameters": {
+				"Env": {
+					"GRPC_PORT": "8080",
+					"PROM_PORT": "8801",
+					"OC_AGENT_HOST": "oc-collector.tracing:55678"
+				}
+			},
+			"TLS": [
+				"emoji"
+			]
+		},
+		"voting-svc": {
+			"Package": "voting-svc",
+			"Parameters": {
+				"Env": {
+					"GRPC_PORT": "8080",
+					"PROM_PORT": "8801",
+					"OC_AGENT_HOST": "oc-collector.tracing:55678"
+				}
+			},
+			"TLS": [
+				"voting"
+			]
+		}
+	},
+	"Clients": {
+		"owner": [
+			9,
+			9,
+			9
+		]
+	},
+	"Secrets": {
+		"webCertShared": {
+			"Shared": true,
+			"Size": 256,
+			"Type": "cert-ecdsa",
+			"Cert": {
+				"Subject": {
+					"CommonName": "localhost"
+				},
+				"DNSNames": [
+					"localhost"
+				]
+			},
+			"ValidFor": 7
+		}
+	},
+	"Users": {},
+	"Roles": {},
+	"RecoveryKeys": {},
+	"TLS": {
+		"web": {
+			"Outgoing": [
+				{
+					"Port": "8080",
+					"Addr": "emoji-svc.emojivoto"
+				},
+				{
+					"Port": "8080",
+					"Addr": "voting-svc.emojivoto"
+				}
+			],
+			"Incoming": [
+				{
+					"Port": "4433",
+					"Cert": "webCertShared",
+					"DisableClientAuth": true
+				}
+			]
+		},
+		"emoji": {
+			"Outgoing": [],
+			"Incoming": [
+				{
+					"Port": "8080"
+				}
+			]
+		},
+		"voting": {
+			"Outgoing": [],
+			"Incoming": [
+				{
+					"Port": "8080"
+				}
+			]
+		}
+	}
+}

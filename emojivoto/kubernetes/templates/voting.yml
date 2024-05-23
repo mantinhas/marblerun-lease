@@ -1,0 +1,95 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: voting
+  namespace: emojivoto
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: voting
+  namespace: emojivoto
+  labels:
+    app.kubernetes.io/name: voting
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: v1
+spec:
+  serviceName: "voting"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voting-svc
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: voting-svc
+        version: v1
+        marblerun/marbletype: voting-svc
+        marblerun/resource-injection: {{ .Values.resourceInjection }}
+    spec:
+      serviceAccountName: voting
+      containers:
+      - env:
+        - name: OE_SIMULATION
+          valueFrom:
+            configMapKeyRef:
+              name: oe-config
+              key: OE_SIMULATION
+        {{ if .Values.dcap  }}
+        - name: DCAP_LIBRARY
+          value: "{{ .Values.dcap.qpl }}"
+        {{ end }}
+        image: {{ .Values.voting.image }}:{{ .Values.voting.imageVersion }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        name: voting-svc
+        ports:
+        - containerPort: 8080
+          name: grpc
+        - containerPort: 8801
+          name: prom
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: voting-data
+          mountPath: /voting-svc/data
+        {{ if .Values.dcap }}
+        - name: dcap-conf
+          mountPath: /etc/sgx_default_qcnl.conf
+          subPath: sgx_default_qcnl.conf
+        {{ end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{ if .Values.dcap }}
+      - name: dcap-conf
+        configMap:
+          name: emojivoto-dcap-config
+      {{ end }}
+  volumeClaimTemplates:
+  - metadata:
+      name: voting-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-svc
+  namespace: emojivoto
+spec:
+  selector:
+    app: voting-svc
+  ports:
+  - name: grpc
+    port: 8080
+    targetPort: 8080
+  - name: prom
+    port: 8801
+    targetPort: 8801

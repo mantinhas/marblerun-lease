@@ -1,0 +1,84 @@
+{
+    "Packages": {
+        "backend": {
+            "Debug": true,
+            "SecurityVersion": 1,
+            "ProductID": 1,
+            "SignerID": "cd01f66e1fb9a6379e9185ca5a1b6ea43f4e0f4a73f6bf62b57578344a5be84e"
+        }
+    },
+    "Infrastructures": {
+        "localhost": {}
+    },
+    "Marbles": {
+        "server": {
+            "Package": "backend",
+            "Parameters": {
+                "Argv": [
+                    "./marble",
+                    "serve"
+                ],
+                "Env": {
+                    "ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}"
+                }
+            }
+        },
+        "client": {
+            "Package": "backend",
+            "Parameters": {
+                "Argv": [
+                    "./marble"
+                ],
+                "Env": {
+                    "ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+                    "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+                    "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}"
+                }
+            }
+        }
+    },
+    "Users": {
+        "Provider": {
+            "Certificate": "-----BEGIN CERTIFICATE-----\nMIIFazCCA1OgAwIBAgIUfuSiBABOusZfr9pHa0AiHVVQ//EwDQYJKoZIhvcNAQEL\nBQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM\nGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMzA4MTkxNzU5MDlaFw0zMzA4\nMTYxNzU5MDlaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw\nHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggIiMA0GCSqGSIb3DQEB\nAQUAA4ICDwAwggIKAoICAQDJGkNleD2tok/tn+7xL0PHyipdP3yevrOCnklSyu6D\n6n4akq9jOgdurwOiO/YQU6PRSqpWhg32hxSuujlhRbTvafGMnYzDks4f86hPE4DA\nV5s5JaJEtXVez2lC8IouScIBLAzVr5/fozeug8zKR5RYDHoG/fAa/M6wyGdjaxs5\nyzXRizvE5E9Pg3OeTVIwZFj0tAraaF+o/ekqlaZOEXoMA6IcsxZ+F5eXapRRkyar\nefP5azpWMrrgg6/rtZSv36XxNX4YhlUMpRwo5ECdTP75g/kfHc77qYl4BVfsm9IF\n6/BLgLyYuM/cz9wC3OlwUWt5RXqZI4SYpUlTAVsCpfflj5FBbmSaTTLcauxMoI3n\nRCZL1U7NxaDStmRe+KIhdWN+pk5l5w5XZ7nWNBtLjSnKuE37DQBtqCG85o9P58Nw\n97doMzDLUWbpPwkTdQpDsGqcTBr4cqO4nvdHk7N9ilM3iGUCMgjVG/GPoCz5nvvN\nx/b5hg69NrG5hJawcgR9XE3oploMClLBO0RPjwjjTHke4Z0ikg4cA5u0mKagd3Kk\nA60R6rb5P8OL2LCF9t+ZqcAcwzq8jHge7/16UoeWXnfl2FPAu0RGy5kg+jZ0w736\n9DPIGqZt6sr3IlvN76Y+hQNg310L8rs1hP7vlUwB97f3BXOh19t6+JSM9xUz4jPS\nmQIDAQABo1MwUTAdBgNVHQ4EFgQUDhwNu+7bS2lJeL3LqUDnRzwbe3swHwYDVR0j\nBBgwFoAUDhwNu+7bS2lJeL3LqUDnRzwbe3swDwYDVR0TAQH/BAUwAwEB/zANBgkq\nhkiG9w0BAQsFAAOCAgEAxtb3cMqPfqH2eSwa5EjXOROHnpPOqG7MF8WrL1nLNBiu\nm3Z+MAGSOYeFZ1zU6sTzyvCiMuKcyxEcU1GMT0SiYvsPgOVm6uKTxCrxQh48rsz8\nOAz9a/twETyaRqUlthKVmdsenEe7RF7DAL0gVkIcOxW8ZMo3l1cpjGPaAKnN9095\nGNwaqqJZSW4o3v0OvBEC4P8IvZCuSyqRidDNYykswu8J+s0Yma0eefAzT153OWPU\n22agbovmf7UJbhMNy+0lPKuuKGvThknsy4NVtRhO5fqfLe9OxMlG+Xoba3/RyaNi\n+OOTy7GAhguRAPSRXB2+g7fMSiMwVvwAvWg9tYRwnYDqXxRxEIJXYGKc3j4tMBON\nyZGcwDgN5ldueuXdNKXMNEonyijqrtgvPP8m+Xvpdm8s2NcLEmVVcUsQtfFHE3MD\nDaKG5qDsnM5U7IS8/uCab77wdQb4Ju2gO1U1S5ixe+vuv27nQoB4oCxt3IVds2KS\nTi1mAdpRPJluLzQCGZv80ImM/drjcZMmZeqMmKSxYB4Z9ptX5ftNjYa6WYhLkC6Q\ncxB4CclkdXRcWiTebwvBQZI+r2qJyfv2sCh4WJAFstTUU9MVGZwLZLOxAp5mM/3T\nL0qrttQyJ5DcJlHJrbNsWDZ09Uov53TIMS/Q4P4vAOZhIuLCqDaPn0tgxf/tZ3I=\n-----END CERTIFICATE-----",
+            "Roles": [
+                "deactivator"
+            ]
+        }
+    },
+    "Roles": {
+        "deactivator": {
+            "ResourceType": "Deactivate",
+            "Actions": [
+                "Deactivate"
+            ]
+        }
+    },
+    "DeactivationSettings": {
+        "Coordinator": {
+            "ConnectionUrl": "localhost:50051",
+            "ConnectionCertificate": "-----BEGIN CERTIFICATE-----\nMIIFazCCA1OgAwIBAgIUA7HWDxJCOHKJsxYsnSuNUx6lW1swDQYJKoZIhvcNAQEL\nBQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM\nGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMzA4MjgyMjU2NThaFw0zMzA4\nMjUyMjU2NThaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw\nHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggIiMA0GCSqGSIb3DQEB\nAQUAA4ICDwAwggIKAoICAQDJ44G075NWXpfU+yxoFq5z9aofeODTVIdSRPy7dV9j\nO8JuYjEQowZEgWWajMGqeSYbGDKBiE6K3HBoLZ0XsCEe+Q8RpubUGP0iOM8bv1Dj\nFP04BqcRL637OVaBHVhRLXX3/rXI0M3QO73mdTytUPboT0MgZOKTPdbW8EeXlzXp\nppXUzFk5VxdcYQwtCR72BLSu1tITB0CgpmngpD2eQ5iGUGifs1dVZwinb49XJjd6\nZQBQ1KlcU5xg898g4LaVRUNHnQtT+i0L+sDJ/g5BnHUg1O+jDMtFroY3LEUelxKB\nP1ZDOhTepY1Av4J0T8/hDXOLxWlX/fnu0E1If6E5ZFOBzaZvl19Z/RjOmNPltNgo\n25Kq3EtuZd+2PHEYvoiMjHJ8h+5qikWhBgVnbuWo38tEzW+nZ8xLjwB3+kfOrgv+\nFESzybz/6E7jUXGv9uiKRRFkHUwcjFMoj3uiEwaEO9Bl/FHWCLjY8AphYJ530lhQ\n0O247fq4+fz2KUB0qfcg04KWmxgjEGARGi9Ze+GtppBVT8DwdXWTQ6YHJIdVWMdW\nez7ZrkqMuH5OBWPavs6izyrrgxz4RvOvRYF4kbHWZZGfvmXjNSZwVQgXBYVwQq1K\nVic62s5tGn1K9oWM5QV+/AN6u1RyJB5btWNQDEXtYo2HZMyQu11ujUItEtfNeibo\nLQIDAQABo1MwUTAdBgNVHQ4EFgQUsAlxrCXBSSuBa8qb9UCL8IHkZNgwHwYDVR0j\nBBgwFoAUsAlxrCXBSSuBa8qb9UCL8IHkZNgwDwYDVR0TAQH/BAUwAwEB/zANBgkq\nhkiG9w0BAQsFAAOCAgEAA4SffsIUFvikRpg3Qbl3m1AME/vnMkfLJQlotqTw0/VF\nJIkw6joFovXG9IbKA9rubXxgh7hP6OalRYaBgdSwZfuR9HsfbSOXlYdI8muYjxSS\njGfamNDGNQFywFYvgaMMLGVpA2pDMja3umYwkcTYSZRR1XkO0HYEsUEAhKCJTcCL\n6G7D9DNdRprNAIGkV1JdLbFEIigDSkPByP7uUF+ctQ8H2cMc7ZYG7pq3hkXZgxRx\nBTD8kLSQipCtxSHHWlgR1V309DKVgDOft2QkQVFR8IITzO5FlEYRlkHQNQ4vUpR/\nBPwQ6ZN+VHqVno3Od+4PZ6gbZ6mJufyllcnHQKNkDKf3j5TSq/8Dw2Tx/qZrJtTe\n/QxryxVQAVu5JCn8C+tbPOET/aZEkU+8C8hnmMplNbWIHhvE6/e+PyWjONr6Yl9d\nVbBAamA2Noa1L0cAkRaLkQ67d5wpzJUlpPDWBtOJjhodOCTrv7jpQ/KZGDzCZmau\njSsSCGwc1jlahsU8phYVoL2A9/iD+EvHtpvL0ICvYsXTqu2KHcLso1PnSjA+Azth\nw73S94sNTwmi9nM0Kns5A4VseCIiAaOXNIkGcJzJG84BWDvZsBy41dwuuZzUZmtT\nrRFkn+WSJLa30cJBgOxaW14GXt0xYzM/soiWM9HinFbW9yiJZDQzkMVJX4z9NQQ=\n-----END CERTIFICATE-----",
+            "PingInterval": {
+                "value": 10,
+                "unit": "seconds"
+            },
+            "Retries": 3,
+            "RetryInterval": {
+                "value": 3,
+                "unit": "seconds"
+            }
+        },
+        "Marbles": {
+            "PingInterval": {
+                "value": 10,
+                "unit": "seconds"
+            },
+            "Retries": 3,
+            "RetryInterval": {
+                "value": 3,
+                "unit": "seconds"
+            }
+        }
+    }
+}

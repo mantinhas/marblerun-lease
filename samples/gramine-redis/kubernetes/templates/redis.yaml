@@ -1,0 +1,118 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: redis
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-main
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+    role: main
+    tier: backend
+spec:
+  serviceName: "redis"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: main
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: main
+        tier: backend
+        marblerun/marbletype: redis-main
+    spec:
+      serviceAccountName: redis
+      containers:
+      - image: ghcr.io/edgelesssys/redis-gramine-marble:latest
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        env:
+        - name: SGX_AESM_ADDR
+          value: "1"
+        - name: EDG_MARBLE_UUID_FILE
+          value: "uuid"
+        - name: EDG_MARBLE_TYPE
+          value: "redis-main"
+        name: redis
+        volumeMounts:
+        - name: aesmd-socket
+          mountPath: /var/run/aesmd
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: aesmd-socket
+        hostPath:
+          path: /var/run/aesmd
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-replica
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+    role: replica
+    tier: backend
+spec:
+  serviceName: "redis"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: replica
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: replica
+        tier: backend
+        marblerun/marbletype: redis-replica
+    spec:
+      serviceAccountName: redis
+      containers:
+      - image: ghcr.io/edgelesssys/redis-gramine-marble:latest
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        env:
+        - name: SGX_AESM_ADDR
+          value: "1"
+        - name: EDG_MARBLE_UUID_FILE
+          value: "uuid"
+        - name: EDG_MARBLE_TYPE
+          value: "redis-replica"
+        name: redis
+        volumeMounts:
+        - name: aesmd-socket
+          mountPath: /var/run/aesmd
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: aesmd-socket
+        hostPath:
+          path: /var/run/aesmd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-main
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+    role: main
+  ports:
+  - name: http
+    port: 6379
+    targetPort: 6379

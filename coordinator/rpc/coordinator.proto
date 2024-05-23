@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "github.com/edgelesssys/marblerun/coordinator/rpc";
+
+service Marble {
+  // Activate activates a marble in the mesh.
+  rpc Activate (ActivationReq) returns (ActivationResp);
+
+  rpc Ping (PingReq) returns (PingResp);
+  rpc Deactivate (DeactivateReq) returns (DeactivateResp);
+}
+
+message ActivationReq {
+  // TODO: sending the quote via metadata/context would be cleaner.
+  bytes Quote = 1;
+  bytes CSR = 2;
+  string MarbleType = 3;
+  string UUID = 4;
+}
+
+message DeactivationSettings {
+  int32 Retries = 1;
+  int64 PingInterval = 2;
+  int64 RetryInterval = 3;
+}
+
+message ActivationResp {
+  Parameters Parameters = 1;
+  DeactivationSettings DeactivationSettings = 2;
+}
+
+message Parameters {
+  map<string, bytes> Files = 1;
+  map<string, bytes> Env = 2;
+  repeated string Argv = 3;
+}
+
+message PingReq {
+  string MarbleType = 1;
+  string UUID = 2;
+}
+
+message PingResp {
+  bool ok = 1;
+}
+
+message DeactivateReq {
+}
+
+message DeactivateResp {
+}

@@ -1,0 +1,248 @@
+{
+    "Packages": {
+        "backend": {
+            "SignerID": "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100",
+            "ProductID": 45,
+            "SecurityVersion": 2,
+            "Debug": false
+        },
+        "frontend": {
+            "SignerID": "1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100",
+            "ProductID": 44,
+            "SecurityVersion": 3,
+            "Debug": false
+        }
+    },
+    "Marbles": {
+        "backendFirst": {
+            "Package": "backend",
+            "MaxActivations": 1,
+            "Parameters": {
+                "Files": {
+                    "/tmp/abc.txt": "helloworld",
+                    "/tmp/helloworld.sh": "#!/usr/bin/env bash\necho {{ raw .Secrets.hello }} {{ raw .Secrets.hello }}",
+                    "/tmp/defg.txt": {
+                        "Encoding": "string",
+                        "NoTemplates": false,
+                        "Data": "foo"
+                    },
+                    "/tmp/jkl.mno": {
+                        "Encoding": "base64",
+                        "NoTemplates": true,
+                        "Data": "YmFy"
+                    },
+                    "/tmp/enc.key": {
+                        "Encoding": "string",
+                        "NoTemplates": true,
+                        "Data": "{{ raw .Secrets.symmetricKeyShared }}"
+                    }
+                },
+                "Env": {
+                    "IS_FIRST": "true",
+                    "IS_SECOND": {
+                        "Encoding": "string",
+                        "Data": "false"
+                    },
+                    "API_KEY": "{{ raw .Secrets.apiKey }}",
+                    "TEST_SECRET_CERT": "{{ pem .Secrets.certShared.Cert }}",
+                    "TEST_SECRET_PRIVATE_CERT": "{{ pem .Secrets.certPrivate.Cert }}"
+                },
+                "Argv": [
+                    "--first",
+                    "serve"
+                ]
+            },
+            "TLS": [
+                "web"
+            ]
+        },
+        "backendOther": {
+            "Package": "backend",
+            "Parameters": {
+                "Env": {
+                    "TEST_SECRET_CERT": "{{ pem .Secrets.certShared.Cert }}",
+                    "TEST_SECRET_PRIVATE_CERT": "{{ pem .Secrets.certPrivate.Cert }}"
+                },
+                "Argv": [
+                    "serve"
+                ]
+            },
+            "TLS": [
+                "web",
+                "anotherWeb"
+            ]
+        },
+        "frontend": {
+            "Package": "frontend"
+        }
+    },
+    "Secrets": {
+        "hello": {
+            "Type": "plain",
+            "UserDefined": true
+        },
+        "world": {
+            "Type": "plain",
+            "UserDefined": true
+        },
+        "apiKey": {
+            "Type": "plain",
+            "UserDefined": true
+        },
+        "symmetricKeyShared": {
+            "Type": "symmetric-key",
+            "Size": 128,
+            "Shared": true
+        },
+        "symmetricKeyPrivate": {
+            "Size": 256,
+            "Type": "symmetric-key"
+        },
+        "certPrivate": {
+            "Size": 2048,
+            "Type": "cert-rsa",
+            "Cert": {
+                "Subject": {
+                    "CommonName": "MarbleRun Unit Test"
+                }
+            },
+            "ValidFor": 7
+        },
+        "certShared": {
+            "Shared": true,
+            "Type": "cert-ed25519",
+            "Cert": {
+                "Subject": {
+                    "CommonName": "MarbleRun Unit Test"
+                }
+            },
+            "ValidFor": 7
+        },
+        "rsaShared": {
+            "Shared": true,
+            "Type": "cert-rsa",
+            "Size": 2048,
+            "Cert": {
+                "Subject": {
+                    "CommonName": "MarbleRun Unit Test"
+                }
+            },
+            "ValidFor": 7
+        }
+    },
+    "Users": {
+        "Alice": {
+            "Certificate": "cert-alice",
+            "Roles": [
+                "frontend-updates",
+                "cert-reader",
+                "key-reader"
+            ]
+        },
+        "Bob": {
+            "Certificate": "cert-bob",
+            "Roles": [
+                "backend-updates",
+                "key-reader"
+            ]
+        },
+        "Admin": {
+            "Certificate": "cert-admin",
+            "Roles": [
+                "updates-admin",
+                "secrets-admin"
+            ]
+        }
+    },
+    "Roles": {
+        "frontend-updates": {
+            "ResourceType": "Packages",
+            "ResourceNames": [
+                "frontend"
+            ],
+            "Actions": [
+                "UpdateSecurityVersion"
+            ]
+        },
+        "backend-updates": {
+            "ResourceType": "Packages",
+            "ResourceNames": [
+                "backend"
+            ],
+            "Actions": [
+                "UpdateSecurityVersion"
+            ]
+        },
+        "updates-admin": {
+            "ResourceType": "Packages",
+            "ResourceNames": [
+                "frontend",
+                "backend"
+            ],
+            "Actions": [
+                "UpdateSecurityVersion"
+            ]
+        },
+        "cert-reader": {
+            "ResourceType": "Secrets",
+            "ResourceNames": [
+                "certShared",
+                "rsaShared"
+            ],
+            "Actions": [
+                "ReadSecret"
+            ]
+        },
+        "key-reader": {
+            "ResourceType": "Secrets",
+            "ResourceNames": [
+                "symmetricKeyShared"
+            ],
+            "Actions": [
+                "ReadSecret"
+            ]
+        },
+        "secrets-admin": {
+            "ResourceType": "Secrets",
+            "ResourceNames": [
+                "symmetricKeyShared",
+                "certShared",
+                "rsaShared"
+            ],
+            "Actions": [
+                "ReadSecret",
+                "WriteSecret"
+            ]
+        }
+    },
+    "TLS": {
+        "web": {
+            "Outgoing": [
+                {
+                    "Port": "8080",
+                    "Addr": "service.name"
+                }
+            ],
+            "Incoming": [
+                {
+                    "Port": "8443"
+                }
+            ]
+        },
+        "anotherWeb": {
+            "Outgoing": [
+                {
+                    "Port": "4433",
+                    "Addr": "10.111.37.164"
+                }
+            ],
+            "Incoming": [
+                {
+                    "Port": "8080",
+                    "Cert": "rsaShared",
+                    "DisableClientAuth": true
+                }
+            ]
+        }
+    }
+}

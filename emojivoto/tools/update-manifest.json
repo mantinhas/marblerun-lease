@@ -1,0 +1,7 @@
+{
+    "Packages": {
+        "voting-svc": {
+			"SecurityVersion": 2
+        }
+    }
+}
