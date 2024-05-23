@@ -5,6 +5,7 @@ option go_package = "rpc/";
 
 service Provider {
   rpc Ping (PingReq) returns (PingResp);
+  rpc Lease (LeaseReq) returns (LeaseOffer);
 }
 
 message PingReq {
@@ -15,3 +16,25 @@ message PingReq {
 message PingResp {
   bool ok = 1;
 }
+
+message AppUsage {
+  float cpuTime = 1;
+}
+
+message LeaseOffer {
+  string cert = 1;
+  bytes quote = 2;
+  uint32 leaseDurationSeconds = 3;
+  // New feature?
+  //bool renewContract = 4;
+  //optional AppUsage usageLimit= 5;
+}
+
+message LeaseReq {
+  AppUsage usage = 1;
+  // Should it contain this field? Maybe if field 4 and 5 are added to LeaseOffer
+  //AppUsage limit = 2;
+}
+
+message 
+  

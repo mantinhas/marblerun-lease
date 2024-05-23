@@ -50,3 +50,15 @@ message DeactivateReq {
 
 message DeactivateResp {
 }
+
+message AppUsage {
+  float cpuTime = 1;
+}
+
+message LeaseOffer {
+  uint32 leaseDurationSeconds = 1;
+}
+
+message LeaseReq {
+  AppUsage usage = 1;
+}
