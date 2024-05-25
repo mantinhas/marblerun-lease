@@ -4,7 +4,7 @@
             "Debug": true,
             "SecurityVersion": 1,
             "ProductID": 1,
-            "SignerID": "cd01f66e1fb9a6379e9185ca5a1b6ea43f4e0f4a73f6bf62b57578344a5be84e"
+            "SignerID": "ce61b09e5c4d3ce66d1756134fc409b8f221b59c8ebb7a8f6087eb9040b55811"
         }
     },
     "Infrastructures": {
@@ -67,7 +67,8 @@
             "RetryInterval": {
                 "value": 3,
                 "unit": "seconds"
-            }
+            },
+	    "TrustProtocol": "lease"
         },
         "Marbles": {
             "PingInterval": {
@@ -78,7 +79,8 @@
             "RetryInterval": {
                 "value": 3,
                 "unit": "seconds"
-            }
+            },
+	    "TrustProtocol": "lease"
         }
     }
 }

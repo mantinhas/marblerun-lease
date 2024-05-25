@@ -545,6 +545,14 @@ func (m Manifest) Check(zaplogger *zap.Logger) error {
 			if d.Retries < 0 {
 				return fmt.Errorf("deactivation settings for %s: Retries must be a positive integer", deactivationName)
 			}
+
+			// TrustProtocol
+			if d.TrustProtocol == "" {
+				return fmt.Errorf("deactivation settings for %s are missing TrustProtocol", deactivationName)
+			}
+			if d.TrustProtocol != "ping" && d.TrustProtocol != "lease" {
+				return fmt.Errorf("deactivation settings for %s: Possible values for Trust protocol are {ping,lease}", deactivationName)
+			}
 		} else {
 			return fmt.Errorf("unknown deactivation setting: %s: must be one of Coordinator or Marbles", deactivationName)
 		}
@@ -948,6 +956,8 @@ type Deactivation struct {
 	Retries int
 	// RetryInterval defines the time between two retries.
 	RetryInterval TimeInterval
+	// TrustProtocol defines if "ping" or "lease" is used as a trust protocol
+	TrustProtocol string
 }
 
 type TimeInterval struct {
@@ -959,7 +969,7 @@ type TimeInterval struct {
 
 // Equal returns true if two Deactivation are equal.
 func (d Deactivation) Equal(other Deactivation) bool {
-	return d.ConnectionUrl == other.ConnectionUrl && d.PingInterval == other.PingInterval && d.Retries == other.Retries && d.RetryInterval == other.RetryInterval
+	return d.ConnectionUrl == other.ConnectionUrl && d.PingInterval == other.PingInterval && d.Retries == other.Retries && d.RetryInterval == other.RetryInterval && d.TrustProtocol == other.TrustProtocol
 }
 
 // Equal returns true if two TimeIntervals are equal.
