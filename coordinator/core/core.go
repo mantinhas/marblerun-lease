@@ -697,7 +697,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 			timer := time.NewTimer(leaseTime)
 
 			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
-			resultChan := make(chan uint32)
+			resultChan := make(chan string)
 			errorChan := make(chan error)
 			done := make(chan bool)
 			successfulLease = false
@@ -730,7 +730,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 						}
 
 						done <- true
-						resultChan <- resp.LeaseDurationSeconds
+						resultChan <- resp.LeaseDuration
 						errorChan <- nil
 						successfulLease = true
 						return nil
@@ -757,8 +757,8 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 					os.Exit(1)
 					return
 				} else {
-					c.log.Info("Lease offered", zap.Uint32("leaseTime", result), zap.String("unit", "s"))
-					leaseTime, err = time.ParseDuration(fmt.Sprintf("%ds", result))
+					c.log.Info("Lease offered", zap.String("leaseTime", result), zap.String("unit", "s"))
+					leaseTime, err = time.ParseDuration(result)
 					waitOutLease()
 				}
 			case <-timer.C:

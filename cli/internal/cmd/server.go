@@ -7,6 +7,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -16,6 +17,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -175,8 +177,8 @@ func runServer(cmd *cobra.Command, args []string, servertype string) error {
 	}()
 
 	// Wait for Ctrl+C to exit.
-	//displayHelpMessage()
-	//userInputCommands()
+	displayHelpMessage()
+	userInputCommands()
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
@@ -188,28 +190,42 @@ func runServer(cmd *cobra.Command, args []string, servertype string) error {
 	return nil
 }
 
-//func displayHelpMessage() {
-//	fmt.Println("--- Lease Server CLI ---")
-//	fmt.Println("List of commands:")
-//	fmt.Println("\tchange [duration] - Change the lease duration. Duration is duration notation, e.g. 10s, 5m, 2h, 1d")
-//	fmt.Println("\thelp - Display this help message")
-//}
-//
-//func userInputCommands() {
-//	for {
-//		var command string
-//		fmt.Scanln(&command)
-//		switch command {
-//		case "change":
-//			changeLeaseDuration()
-//		case "help":
-//			displayHelpMessage()
-//		default:
-//			fmt.Println("Unknown command. Type 'help' for a list of commands.")
-//		}
-//
-//	}
-//}
+func displayHelpMessage() {
+	fmt.Println("--- Lease Server CLI ---")
+	fmt.Println("List of commands:")
+	fmt.Println("\tchange [duration] - Change the lease duration. Duration is duration notation, e.g. 10s, 5m, 2h, 1d")
+	fmt.Println("\thelp - Display this help message")
+}
+
+func userInputCommands() {
+	for {
+		in := bufio.NewReader(os.Stdin)
+		command, _ := in.ReadString('\n')
+		command = strings.TrimSuffix(command, "\n")
+		commandParts := strings.Split(command, " ")
+		// print command parts
+		switch commandParts[0] {
+		case "change":
+			if len(commandParts) != 2 {
+				fmt.Println("Incorect number of arguments. Usage: change [duration]")
+				continue
+			}
+
+			duration, err := time.ParseDuration(commandParts[1])
+			if err != nil {
+				fmt.Printf("Invalid duration \"%s\". Example: 12h30m15s\n", commandParts[1])
+				continue
+			}
+			lease.defaultLeaseTime = duration
+			fmt.Printf("Lease duration changed to %s\n", lease.defaultLeaseTime)
+		case "help":
+			displayHelpMessage()
+		default:
+			fmt.Printf("Unknown %s command. Type 'help' for a list of commands.\n", commandParts[0])
+		}
+
+	}
+}
 
 type pingServer struct {
 	rpc.UnimplementedProviderServer
@@ -232,12 +248,12 @@ func (s *pingServer) Ping(ctx context.Context, in *rpc.PingReq) (*rpc.PingResp, 
 type leaseState struct {
 	lastLeaseStartTime time.Time
 	lastLeaseEndTime   time.Time
-	//defaultLeaseTime   time.Duration
+	defaultLeaseTime   time.Duration
 }
 
-var lease leaseState
+var lease = leaseState{defaultLeaseTime: time.Duration(10) * time.Second}
 
-func (lease *leaseState) addLeaseToState(duration time.Duration) error {
+func (lease *leaseState) addLeaseToState() error {
 	if time.Now().Before(lease.lastLeaseStartTime) {
 		return fmt.Errorf("A renewal has already been granted. You cannot renew a lease while another offered lease is in queue.")
 	}
@@ -248,7 +264,7 @@ func (lease *leaseState) addLeaseToState(duration time.Duration) error {
 	} else {
 		lease.lastLeaseStartTime = lease.lastLeaseEndTime
 	}
-	lease.lastLeaseEndTime = lease.lastLeaseStartTime.Add(duration)
+	lease.lastLeaseEndTime = lease.lastLeaseStartTime.Add(lease.defaultLeaseTime)
 	fmt.Printf("Lease granted. Start time: %s, End time: %s\n", lease.lastLeaseStartTime.Format(time.RFC3339), lease.lastLeaseEndTime.Format(time.RFC3339))
 	return nil
 }
@@ -261,12 +277,10 @@ func (s *leaseServer) Lease(ctx context.Context, in *rpc.LeaseReq) (*rpc.LeaseOf
 		fmt.Println("Received lease request from an unknown address\n")
 	}
 
-	var LeaseDurationSeconds int = 10
-
-	err := lease.addLeaseToState(time.Duration(LeaseDurationSeconds) * time.Second)
+	err := lease.addLeaseToState()
 
 	if err != nil {
 		return &rpc.LeaseOffer{Ok: false}, nil
 	}
-	return &rpc.LeaseOffer{Ok: true, LeaseDurationSeconds: uint32(LeaseDurationSeconds)}, nil
+	return &rpc.LeaseOffer{Ok: true, LeaseDuration: lease.defaultLeaseTime.String()}, nil
 }
