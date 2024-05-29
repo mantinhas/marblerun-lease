@@ -50,6 +50,7 @@ type core interface {
 	GetQuote() []byte
 	GenerateQuote([]byte) error
 	SetupKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
+	SetupLeaseKeepAlive(string, *x509.Certificate, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
 	ExtractKeepAliveSettings(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
 	DeactivateMarbles(context.Context) error
 	GetCertQuote(wrapper.Wrapper) (string, []byte, error)
@@ -487,8 +488,19 @@ func (a *ClientAPI) SetManifest(ctx context.Context, rawManifest []byte) (recove
 		return nil, err
 	}
 
-	if err := a.core.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert); err != nil {
-		a.log.Fatal("Cannot setup keepalive", zap.Error(err))
+	trust_protocol := mnf.DeactivationSettings["Coordinator"].TrustProtocol
+
+	a.log.Info("Trust protocol", zap.String("trust_protocol", trust_protocol))
+
+	switch trust_protocol {
+	case "ping":
+		if err := a.core.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert); err != nil {
+			return nil, err
+		}
+	case "lease":
+		if err := a.core.SetupLeaseKeepAlive(url, manifestCertificate, rootCertString, quote, rootPrivK, rootCert); err != nil {
+			return nil, err
+		}
 	}
 
 	a.log.Info("SetManifest successful")

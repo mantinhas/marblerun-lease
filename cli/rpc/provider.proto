@@ -22,19 +22,17 @@ message AppUsage {
 }
 
 message LeaseOffer {
-  string cert = 1;
-  bytes quote = 2;
-  uint32 leaseDurationSeconds = 3;
+  bool ok = 1;
+  string cert = 2;
+  bytes quote = 3;
+  uint32 leaseDurationSeconds = 4;
   // New feature?
-  //bool renewContract = 4;
-  //optional AppUsage usageLimit= 5;
+  //bool renewContract = 5;
+  //optional AppUsage usageLimit= 6;
 }
 
 message LeaseReq {
-  AppUsage usage = 1;
+  //AppUsage usage = 1;
   // Should it contain this field? Maybe if field 4 and 5 are added to LeaseOffer
   //AppUsage limit = 2;
 }
-
-message 
-  

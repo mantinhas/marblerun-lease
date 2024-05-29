@@ -60,5 +60,5 @@ message LeaseOffer {
 }
 
 message LeaseReq {
-  AppUsage usage = 1;
+  //AppUsage usage = 1;
 }

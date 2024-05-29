@@ -572,6 +572,7 @@ type fakeCore struct {
 	generatedSecrets         map[string]manifest.Secret
 	generateSecretsErr       error
 	setupKeepAlive           error
+	setupLeaseKeepAlive      error
 	extractKeepAliveSettings func(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
 	deactivateMarbles        error
 }
@@ -662,6 +663,14 @@ func (c *fakeCore) GenerateQuote(quoteData []byte) error {
 func (c *fakeCore) SetupKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error {
 	if c.setupKeepAlive != nil {
 		return c.setupKeepAlive
+	}
+
+	return nil
+}
+
+func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error {
+	if c.setupLeaseKeepAlive != nil {
+		return c.setupLeaseKeepAlive
 	}
 
 	return nil

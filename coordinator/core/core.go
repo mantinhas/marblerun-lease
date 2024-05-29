@@ -198,8 +198,6 @@ func NewCore(
 			return nil, err
 		} else {
 
-			url, manifestCertificate, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
-
 			privk, err := transaction.GetPrivateKey(constants.SKCoordinatorRootKey)
 			if err != nil {
 				return nil, fmt.Errorf("loading root private key from store: %w", err)
@@ -215,8 +213,21 @@ func NewCore(
 				return nil, err
 			}
 
-			if err := c.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, privk, rootCert); err != nil {
-				return nil, err
+			trust_protocol := manifest.DeactivationSettings["Coordinator"].TrustProtocol
+
+			url, manifestCertificate, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
+
+			c.log.Info("Trust protocol", zap.String("trust_protocol", trust_protocol))
+
+			switch trust_protocol {
+			case "ping":
+				if err := c.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, privk, rootCert); err != nil {
+					return nil, err
+				}
+			case "lease":
+				if err := c.SetupLeaseKeepAlive(url, manifestCertificate, rootCertString, quote, privk, rootCert); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -638,6 +649,129 @@ type transactionHandle interface {
 	SetEncryptionKey([]byte) error
 	SetRecoveryData([]byte)
 	LoadState() ([]byte, error)
+}
+
+func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certificate, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate) error {
+	clientCert := util.TLSCertFromDER(rootCert.Raw, privk)
+
+	tlsConfig := tls.Config{
+		Certificates:       []tls.Certificate{*clientCert},
+		InsecureSkipVerify: true, // We'll handle verification
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			if len(rawCerts) == 0 {
+				return fmt.Errorf("missing server's certificate")
+			}
+			incomingCert, err := x509.ParseCertificate(rawCerts[0])
+			if err != nil {
+				return fmt.Errorf("failed to parse server's certificate: %v", err)
+			}
+
+			if !certificate.Equal(incomingCert) {
+				return fmt.Errorf("server's certificate does not match the stored certificate")
+			}
+			return nil
+		},
+	}
+
+	creds := credentials.NewTLS(&tlsConfig)
+
+	connection, err := grpc.Dial(connectionURL, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		return err
+	}
+
+	client := providerRPC.NewProviderClient(connection)
+
+	go func() {
+		defer connection.Close()
+
+		//TODO add retries and retry interval from manifest
+		leaseTime, err := time.ParseDuration("10s")
+		retries := 3
+		retryInterval, err := time.ParseDuration("1s")
+		var successfulLease bool
+
+		for {
+			// Timeout for the lease
+			c.log.Info("Starting Lease:", zap.Duration("leaseTime", leaseTime))
+			timer := time.NewTimer(leaseTime)
+
+			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
+			resultChan := make(chan uint32)
+			errorChan := make(chan error)
+			done := make(chan bool)
+			successfulLease = false
+			time.AfterFunc(leaseTime/2, func() {
+				for i := 0; i < retries; i++ {
+					func() error {
+						c.log.Info("Requesting Lease...", zap.Int("retry", i+1), zap.Int("retries", retries))
+						ctx, cancel := context.WithTimeout(context.Background(), leaseTime/2)
+						defer cancel()
+
+						// Attempt to re-dial if necessary
+						if connection.GetState() != connectivity.Ready {
+							connection, err = grpc.Dial(connectionURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+							if err != nil {
+								c.log.Error("re-dial attempt failed: %v", zap.Error(err))
+								return err
+							}
+							client = providerRPC.NewProviderClient(connection)
+						}
+
+						resp, err := client.Lease(ctx, &providerRPC.LeaseReq{})
+
+						if err != nil {
+							c.log.Error("LeaseReq failed: %v", zap.Error(err))
+							return err
+						}
+						if !resp.Ok {
+							c.log.Error("LeaseReq failed: response not ok")
+							return errors.New("LeaseReq failed: response not ok")
+						}
+
+						done <- true
+						resultChan <- resp.LeaseDurationSeconds
+						errorChan <- nil
+						successfulLease = true
+						return nil
+					}()
+					if successfulLease {
+						break
+					}
+					time.Sleep(retryInterval)
+				}
+			})
+
+			waitOutLease := func() {
+				<-timer.C
+				c.log.Info("Ended Lease.")
+			}
+
+			// defer waiting for the timer to finish if it didnt finish yet
+			select {
+			case <-done:
+				result, err := <-resultChan, <-errorChan
+				if err != nil {
+					c.log.Error("LeaseReq failed: %v", zap.Error(err))
+					waitOutLease()
+					os.Exit(1)
+					return
+				} else {
+					c.log.Info("Lease offered", zap.Uint32("leaseTime", result), zap.String("unit", "s"))
+					leaseTime, err = time.ParseDuration(fmt.Sprintf("%ds", result))
+					waitOutLease()
+				}
+			case <-timer.C:
+				// Lease expired
+				c.log.Info("Lease expired without renewal after all retries failed. Exiting.")
+				os.Exit(1)
+				return
+			}
+		}
+	}()
+
+	return nil
+
 }
 
 func (c *Core) SetupKeepAlive(connectionURL string, certificate *x509.Certificate, retries int, pingInterval time.Duration, retryInterval time.Duration, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate) error {
