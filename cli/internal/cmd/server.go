@@ -43,8 +43,6 @@ Gets the root CA of the coordinator and opens a GRPC server to accept either pin
 	cmd.AddCommand(NewPingCmd())
 	cmd.AddCommand(NewLeaseCmd())
 
-	cmd.Execute()
-
 	return cmd
 }
 
@@ -176,9 +174,10 @@ func runServer(cmd *cobra.Command, args []string, servertype string) error {
 		log.Fatalf("failed to serve: %v", s.Serve(lis))
 	}()
 
-	// Wait for Ctrl+C to exit.
-	displayHelpMessage()
-	userInputCommands()
+	if servertype == "lease" {
+		displayHelpMessage()
+		userInputCommands()
+	}
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
