@@ -201,11 +201,21 @@ func PreMainEx(issuer quote.Issuer, activate ActivateFunc, hostfs, enclavefs afe
 
 	tlsCredentials = credentials.NewTLS(tlsConfig)
 
-	// setup keepalive
-	log.Println("setting up pings")
+	switch deactivationSettings.TrustProtocol {
+	case "ping":
+		// setup keepalive
+		log.Println("setting up pings")
 
-	if err := setupKeepAlive(coordAddr, tlsCredentials, marbleType, marbleUUID.String(), deactivationSettings); err != nil {
-		return err
+		if err := setupKeepAlive(coordAddr, tlsCredentials, marbleType, marbleUUID.String(), deactivationSettings); err != nil {
+			return err
+		}
+	case "lease":
+		// setup lease
+		log.Println("setting up lease client")
+
+		if err := setupLeaseKeepAlive(coordAddr, tlsCredentials, marbleType, marbleUUID.String(), deactivationSettings); err != nil {
+			return err
+		}
 	}
 
 	// open server
@@ -266,11 +276,110 @@ func applyParameters(params *rpc.Parameters, fs afero.Fs) error {
 	return nil
 }
 
+func setupLeaseKeepAlive(coordAddr string, tlsCredentials credentials.TransportCredentials, marbleType string, uuid string, deactivationSettings *rpc.DeactivationSettings) error {
+
+	leaseTime, err := time.ParseDuration(deactivationSettings.GetLeaseSettings().RequestInterval)
+	retryInterval, err := time.ParseDuration(deactivationSettings.GetLeaseSettings().RetryInterval)
+	retries := int(deactivationSettings.GetLeaseSettings().Retries)
+
+	connection, err := grpc.Dial(coordAddr, grpc.WithTransportCredentials(tlsCredentials))
+	if err != nil {
+		return err
+	}
+
+	client := rpc.NewMarbleClient(connection)
+
+	go func() {
+		defer connection.Close()
+
+		var successfulLease bool
+
+		for {
+			// Timeout for the lease
+			log.Printf("Starting Lease: %s\n", leaseTime.String())
+			timer := time.NewTimer(leaseTime)
+
+			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
+			resultChan := make(chan string)
+			errorChan := make(chan error)
+			done := make(chan bool)
+			successfulLease = false
+			time.AfterFunc(leaseTime/2, func() {
+				for i := 0; i < retries; i++ {
+					func() error {
+						log.Printf("Requesting Lease... retry %d/%d\n", i+1, retries)
+						ctx, cancel := context.WithTimeout(context.Background(), leaseTime/2)
+						defer cancel()
+
+						// Attempt to re-dial if necessary
+						if connection.GetState() != connectivity.Ready {
+							connection, err = grpc.Dial(coordAddr, grpc.WithTransportCredentials(tlsCredentials))
+							if err != nil {
+								log.Printf("re-dial attempt failed: %v\n", err)
+								return err
+							}
+						}
+
+						resp, err := client.Lease(ctx, &rpc.LeaseReq{})
+
+						if err != nil {
+							log.Printf("LeaseReq failed: %v", (err))
+							return err
+						}
+						if !resp.Ok {
+							log.Printf("LeaseReq failed: response not ok\n")
+							return errors.New("LeaseReq failed: response not ok")
+						}
+
+						done <- true
+						resultChan <- resp.LeaseDuration
+						errorChan <- nil
+						successfulLease = true
+						return nil
+					}()
+					if successfulLease {
+						break
+					}
+					time.Sleep(retryInterval)
+				}
+			})
+
+			waitOutLease := func() {
+				<-timer.C
+				log.Println("Ended Lease.")
+			}
+
+			// defer waiting for the timer to finish if it didnt finish yet
+			select {
+			case <-done:
+				result, err := <-resultChan, <-errorChan
+				if err != nil {
+					log.Printf("LeaseReq failed: %v\n", (err))
+					waitOutLease()
+					os.Exit(1)
+					return
+				} else {
+					leaseTime, err = time.ParseDuration(result)
+					log.Printf("Lease offered for %s\n", leaseTime.String())
+					waitOutLease()
+				}
+			case <-timer.C:
+				// Lease expired
+				log.Println("Lease expired without renewal after all retries failed. Exiting.")
+				os.Exit(1)
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
 func setupKeepAlive(coordAddr string, tlsCredentials credentials.TransportCredentials, marbleType string, uuid string, deactivationSettings *rpc.DeactivationSettings) error {
 
-	pingInterval := time.Duration(deactivationSettings.GetPingInterval()) * time.Second
-	retryInterval := time.Duration(deactivationSettings.GetRetryInterval()) * time.Second
-	retries := int(deactivationSettings.GetRetries())
+	pingInterval, err := time.ParseDuration(deactivationSettings.GetPingSettings().RequestInterval)
+	retryInterval, err := time.ParseDuration(deactivationSettings.GetPingSettings().RetryInterval)
+	retries := int(deactivationSettings.GetPingSettings().Retries)
 
 	connection, err := grpc.Dial(coordAddr, grpc.WithTransportCredentials(tlsCredentials))
 	if err != nil {

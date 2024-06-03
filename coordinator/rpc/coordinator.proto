@@ -9,6 +9,7 @@ service Marble {
 
   rpc Ping (PingReq) returns (PingResp);
   rpc Deactivate (DeactivateReq) returns (DeactivateResp);
+  rpc Lease(LeaseReq) returns (LeaseOffer);
 }
 
 message ActivationReq {
@@ -20,9 +21,23 @@ message ActivationReq {
 }
 
 message DeactivationSettings {
-  int32 Retries = 1;
-  int64 PingInterval = 2;
-  int64 RetryInterval = 3;
+  string TrustProtocol = 1;
+  oneof Settings {
+    PingSettings PingSettings = 2;
+    LeaseSettings LeaseSettings = 3;
+  }
+}
+
+message PingSettings {
+  string RequestInterval = 1;
+  string RetryInterval = 2;
+  int32 Retries = 3;
+}
+
+message LeaseSettings {
+  string RequestInterval = 1;
+  string RetryInterval = 2;
+  int32 Retries = 3;
 }
 
 message ActivationResp {
@@ -45,6 +60,17 @@ message PingResp {
   bool ok = 1;
 }
 
+message LeaseOffer {
+  bool ok = 1;
+  string leaseDuration = 2;
+  // New feature?
+  //bool renewContract = 5;
+  //optional AppUsage usageLimit= 6;
+}
+
+message LeaseReq {
+}
+
 message DeactivateReq {
 }
 
@@ -53,12 +79,4 @@ message DeactivateResp {
 
 message AppUsage {
   float cpuTime = 1;
-}
-
-message LeaseOffer {
-  uint32 leaseDurationSeconds = 1;
-}
-
-message LeaseReq {
-  //AppUsage usage = 1;
 }

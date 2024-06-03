@@ -566,15 +566,16 @@ type fakeCore struct {
 	advanceStateErr error
 	getStateMsg     string
 	// recoveryErr        error
-	quote                    []byte
-	generateQuoteErr         error
-	getStateErr              error
-	generatedSecrets         map[string]manifest.Secret
-	generateSecretsErr       error
-	setupKeepAlive           error
-	setupLeaseKeepAlive      error
-	extractKeepAliveSettings func(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
-	deactivateMarbles        error
+	quote                         []byte
+	generateQuoteErr              error
+	getStateErr                   error
+	generatedSecrets              map[string]manifest.Secret
+	generateSecretsErr            error
+	setupKeepAlive                error
+	setupLeaseKeepAlive           error
+	extractKeepAliveSettings      func(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
+	extractLeaseKeepAliveSettings func(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
+	deactivateMarbles             error
 }
 
 func (c *fakeCore) Unlock() {
@@ -668,7 +669,7 @@ func (c *fakeCore) SetupKeepAlive(string, *x509.Certificate, int, time.Duration,
 	return nil
 }
 
-func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error {
+func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error {
 	if c.setupLeaseKeepAlive != nil {
 		return c.setupLeaseKeepAlive
 	}
@@ -679,6 +680,15 @@ func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, string, []byte
 func (c *fakeCore) ExtractKeepAliveSettings(d manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration) {
 	if c.extractKeepAliveSettings != nil {
 		s, c, i, d1, d2 := c.extractKeepAliveSettings(d)
+		return s, c, i, d1, d2
+	}
+
+	// Return some default values if the function is not set
+	return "", nil, 0, 0, 0
+}
+func (c *fakeCore) ExtractLeaseKeepAliveSettings(d manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration) {
+	if c.extractLeaseKeepAliveSettings != nil {
+		s, c, i, d1, d2 := c.extractLeaseKeepAliveSettings(d)
 		return s, c, i, d1, d2
 	}
 

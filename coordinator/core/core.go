@@ -215,17 +215,17 @@ func NewCore(
 
 			trust_protocol := manifest.DeactivationSettings["Coordinator"].TrustProtocol
 
-			url, manifestCertificate, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
-
 			c.log.Info("Trust protocol", zap.String("trust_protocol", trust_protocol))
 
 			switch trust_protocol {
 			case "ping":
+				url, manifestCertificate, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
 				if err := c.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, privk, rootCert); err != nil {
 					return nil, err
 				}
 			case "lease":
-				if err := c.SetupLeaseKeepAlive(url, manifestCertificate, rootCertString, quote, privk, rootCert); err != nil {
+				url, manifestCertificate, retries, leaseInterval, retryInterval := c.ExtractLeaseKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
+				if err := c.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, privk, rootCert); err != nil {
 					return nil, err
 				}
 			}
@@ -651,7 +651,7 @@ type transactionHandle interface {
 	LoadState() ([]byte, error)
 }
 
-func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certificate, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate) error {
+func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certificate, retries int, leaseTime time.Duration, retryInterval time.Duration, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate) error {
 	clientCert := util.TLSCertFromDER(rootCert.Raw, privk)
 
 	tlsConfig := tls.Config{
@@ -685,10 +685,6 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 	go func() {
 		defer connection.Close()
 
-		//TODO add retries and retry interval from manifest
-		leaseTime, err := time.ParseDuration("10s")
-		retries := 3
-		retryInterval, err := time.ParseDuration("1s")
 		var successfulLease bool
 
 		for {
@@ -757,8 +753,8 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 					os.Exit(1)
 					return
 				} else {
-					c.log.Info("Lease offered", zap.String("leaseTime", result), zap.String("unit", "s"))
 					leaseTime, err = time.ParseDuration(result)
+					c.log.Info("Lease offered", zap.Duration("leaseTime", leaseTime))
 					waitOutLease()
 				}
 			case <-timer.C:
@@ -869,9 +865,9 @@ func (c *Core) ExtractKeepAliveSettings(manifestDeactivation manifest.Deactivati
 	// if ConnectionUrl starts with "http://" or "https://", remove it
 	connectionURL = strings.TrimPrefix(connectionURL, "http://")
 	connectionURL = strings.TrimPrefix(connectionURL, "https://")
-	retries := manifestDeactivation.Retries
-	pingInterval := util.ConvertToTimeDuration(manifestDeactivation.PingInterval.Value, manifestDeactivation.PingInterval.Unit)
-	retryInterval := util.ConvertToTimeDuration(manifestDeactivation.RetryInterval.Value, manifestDeactivation.RetryInterval.Unit)
+	retries := manifestDeactivation.PingSettings.Retries
+	pingInterval, _ := time.ParseDuration(manifestDeactivation.PingSettings.RequestInterval) // _ because we know it's valid from previous validation
+	retryInterval, _ := time.ParseDuration(manifestDeactivation.PingSettings.RetryInterval)  // _ because we know it's valid from previous validation
 
 	connectionCertificateString := manifestDeactivation.ConnectionCertificate
 	block, _ := pem.Decode([]byte(connectionCertificateString))
@@ -882,6 +878,28 @@ func (c *Core) ExtractKeepAliveSettings(manifestDeactivation manifest.Deactivati
 	}
 
 	return connectionURL, connectionCertificate, retries, pingInterval, retryInterval
+
+}
+
+func (c *Core) ExtractLeaseKeepAliveSettings(manifestDeactivation manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration) {
+	// Extract and convert values from the manifest
+	connectionURL := manifestDeactivation.ConnectionUrl
+	// if ConnectionUrl starts with "http://" or "https://", remove it
+	connectionURL = strings.TrimPrefix(connectionURL, "http://")
+	connectionURL = strings.TrimPrefix(connectionURL, "https://")
+	retries := manifestDeactivation.LeaseSettings.Retries
+	leaseInterval, _ := time.ParseDuration(manifestDeactivation.LeaseSettings.RequestInterval) // _ because we know it's valid from previous validation
+	retryInterval, _ := time.ParseDuration(manifestDeactivation.LeaseSettings.RetryInterval)   // _ because we know it's valid from previous validation
+
+	connectionCertificateString := manifestDeactivation.ConnectionCertificate
+	block, _ := pem.Decode([]byte(connectionCertificateString))
+
+	var connectionCertificate *x509.Certificate
+	if block != nil {
+		connectionCertificate, _ = x509.ParseCertificate(block.Bytes)
+	}
+
+	return connectionURL, connectionCertificate, retries, leaseInterval, retryInterval
 
 }
 

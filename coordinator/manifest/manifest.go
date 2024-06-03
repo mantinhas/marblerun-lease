@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/edgelesssys/marblerun/coordinator/quote"
 	"github.com/edgelesssys/marblerun/coordinator/user"
@@ -508,49 +509,46 @@ func (m Manifest) Check(zaplogger *zap.Logger) error {
 					return fmt.Errorf("manifest does not contain a certificate for the connection")
 				}
 			}
-			// Ping interval
-			if d.PingInterval.Value == 0 {
-				return fmt.Errorf("deactivation settings for %s are missing PingInterval Value", deactivationName)
-			}
-			if d.PingInterval.Value < 0 {
-				return fmt.Errorf("deactivation settings for %s: PingInterval Value must be a positive integer", deactivationName)
-			}
-			if d.PingInterval.Unit == "" {
-				return fmt.Errorf("deactivation settings for %s are missing PingInterval Unit", deactivationName)
-			}
-			// if unit is not "seconds", "minutes", "hours", "days", error
-			if d.PingInterval.Unit != "seconds" && d.PingInterval.Unit != "minutes" && d.PingInterval.Unit != "hours" && d.PingInterval.Unit != "days" {
-				return fmt.Errorf("deactivation settings for %s: PingInterval Unit must be one of seconds, minutes, hours, days", deactivationName)
-			}
 
-			// Retry interval
-			if d.RetryInterval.Value == 0 {
-				return fmt.Errorf("deactivation settings for %s are missing RetryInterval Value", deactivationName)
-			}
-			if d.RetryInterval.Value < 0 {
-				return fmt.Errorf("deactivation settings for %s: RetryInterval Value must be a positive integer", deactivationName)
-			}
-			if d.RetryInterval.Unit == "" {
-				return fmt.Errorf("deactivation settings for %s are missing RetryInterval Unit", deactivationName)
-			}
-			// if unit is not "seconds", "minutes", "hours", "days", error
-			if d.RetryInterval.Unit != "seconds" && d.RetryInterval.Unit != "minutes" && d.RetryInterval.Unit != "hours" && d.RetryInterval.Unit != "days" {
-				return fmt.Errorf("deactivation settings for %s: RetryInterval Unit must be one of seconds, minutes, hours, days", deactivationName)
-			}
+			switch d.TrustProtocol {
+			case "ping":
+				if d.PingSettings.RequestInterval == "" {
+					return fmt.Errorf("deactivation settings for %s are missing PingSettings.RequestInterval", deactivationName)
+				}
+				if d.PingSettings.RetryInterval == "" {
+					return fmt.Errorf("deactivation settings for %s are missing PingSettings.RetryInterval", deactivationName)
+				}
+				if d.PingSettings.Retries == 0 {
+					return fmt.Errorf("deactivation settings for %s are missing or must be bigger than 0 for PingSettings.Retries", deactivationName)
+				}
+				if d.PingSettings.Retries <= 0 {
+					return fmt.Errorf("deactivation settings for %s must be bigger than 0 for PingSettings.Retries", deactivationName)
+				}
+				_, err := time.ParseDuration(d.PingSettings.RequestInterval)
+				if err != nil {
+					return fmt.Errorf("deactivation settings for %s: PingSettings.RequestInterval must be a valid duration, e.g. 1m10s", deactivationName)
+				}
 
-			// Retries
-			if d.Retries == 0 {
-				return fmt.Errorf("deactivation settings for %s are missing Retries", deactivationName)
-			}
-			if d.Retries < 0 {
-				return fmt.Errorf("deactivation settings for %s: Retries must be a positive integer", deactivationName)
-			}
-
-			// TrustProtocol
-			if d.TrustProtocol == "" {
+			case "lease":
+				if d.LeaseSettings.RequestInterval == "" {
+					return fmt.Errorf("deactivation settings for %s are missing LeaseSettings.RequestInterval", deactivationName)
+				}
+				if d.LeaseSettings.RetryInterval == "" {
+					return fmt.Errorf("deactivation settings for %s are missing LeaseSettings.RetryInterval", deactivationName)
+				}
+				if d.LeaseSettings.Retries == 0 {
+					return fmt.Errorf("deactivation settings for %s are missing or must be bigger than 0 for LeaseSettings.Retries", deactivationName)
+				}
+				if d.LeaseSettings.Retries <= 0 {
+					return fmt.Errorf("deactivation settings for %s must be bigger than 0 for LeaseSettings.Retries", deactivationName)
+				}
+				_, err := time.ParseDuration(d.LeaseSettings.RequestInterval)
+				if err != nil {
+					return fmt.Errorf("deactivation settings for %s: LeaseSettings.RequestInterval must be a valid duration, e.g. 1m10s", deactivationName)
+				}
+			case "":
 				return fmt.Errorf("deactivation settings for %s are missing TrustProtocol", deactivationName)
-			}
-			if d.TrustProtocol != "ping" && d.TrustProtocol != "lease" {
+			default:
 				return fmt.Errorf("deactivation settings for %s: Possible values for Trust protocol are {ping,lease}", deactivationName)
 			}
 		} else {
@@ -950,29 +948,41 @@ type Deactivation struct {
 	ConnectionUrl string
 	// ConnectionCertificate is the certificate for authentication of the ping target. Only used for the coordinator.
 	ConnectionCertificate string
-	// PingInterval defines the time between two pings.
-	PingInterval TimeInterval
-	// Retries is the number of times a ping should be retried before timing out.
-	Retries int
-	// RetryInterval defines the time between two retries.
-	RetryInterval TimeInterval
 	// TrustProtocol defines if "ping" or "lease" is used as a trust protocol
 	TrustProtocol string
+	// PingSettings defines the settings for the ping mode
+	PingSettings PingSettings
+	// LeaseSettings defines the settings for the lease mode
+	LeaseSettings LeaseSettings
 }
 
-type TimeInterval struct {
-	// Value is the value of the time interval.
-	Value int
-	// Unit is the unit of the time interval. Can be one of "seconds", "minutes", "hours", "days".
-	Unit string
+type PingSettings struct {
+	// PingInterval defines the time between two pings.
+	RequestInterval string
+	// RetryInterval defines the time between two retries.
+	RetryInterval string
+	// Retries is the number of times a ping should be retried before timing out.
+	Retries int
+}
+
+type LeaseSettings struct {
+	// PingInterval defines the time between two pings.
+	RequestInterval string
+	// RetryInterval defines the time between two retries.
+	RetryInterval string
+	// Retries is the number of times a ping should be retried before timing out.
+	Retries int
 }
 
 // Equal returns true if two Deactivation are equal.
 func (d Deactivation) Equal(other Deactivation) bool {
-	return d.ConnectionUrl == other.ConnectionUrl && d.PingInterval == other.PingInterval && d.Retries == other.Retries && d.RetryInterval == other.RetryInterval && d.TrustProtocol == other.TrustProtocol
+	return d.ConnectionUrl == other.ConnectionUrl && d.ConnectionCertificate == other.ConnectionCertificate && d.TrustProtocol == other.TrustProtocol && d.PingSettings.Equal(other.PingSettings) && d.LeaseSettings.Equal(other.LeaseSettings)
 }
 
-// Equal returns true if two TimeIntervals are equal.
-func (t TimeInterval) Equal(other TimeInterval) bool {
-	return t.Value == other.Value && t.Unit == other.Unit
+func (p PingSettings) Equal(other PingSettings) bool {
+	return p.RequestInterval == other.RequestInterval && p.RetryInterval == other.RetryInterval && p.Retries == other.Retries
+}
+
+func (l LeaseSettings) Equal(other LeaseSettings) bool {
+	return l.RequestInterval == other.RequestInterval && l.RetryInterval == other.RetryInterval && l.Retries == other.Retries
 }

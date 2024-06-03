@@ -526,99 +526,6 @@ func (x *PingResp) GetOk() bool {
 	return false
 }
 
-type LeaseOffer struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Ok            bool   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	LeaseDuration string `protobuf:"bytes,2,opt,name=leaseDuration,proto3" json:"leaseDuration,omitempty"`
-}
-
-func (x *LeaseOffer) Reset() {
-	*x = LeaseOffer{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_coordinator_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *LeaseOffer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LeaseOffer) ProtoMessage() {}
-
-func (x *LeaseOffer) ProtoReflect() protoreflect.Message {
-	mi := &file_coordinator_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LeaseOffer.ProtoReflect.Descriptor instead.
-func (*LeaseOffer) Descriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *LeaseOffer) GetOk() bool {
-	if x != nil {
-		return x.Ok
-	}
-	return false
-}
-
-func (x *LeaseOffer) GetLeaseDuration() string {
-	if x != nil {
-		return x.LeaseDuration
-	}
-	return ""
-}
-
-type LeaseReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *LeaseReq) Reset() {
-	*x = LeaseReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_coordinator_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *LeaseReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LeaseReq) ProtoMessage() {}
-
-func (x *LeaseReq) ProtoReflect() protoreflect.Message {
-	mi := &file_coordinator_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LeaseReq.ProtoReflect.Descriptor instead.
-func (*LeaseReq) Descriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{9}
-}
-
 type DeactivateReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -628,7 +535,7 @@ type DeactivateReq struct {
 func (x *DeactivateReq) Reset() {
 	*x = DeactivateReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_coordinator_proto_msgTypes[10]
+		mi := &file_coordinator_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -641,7 +548,7 @@ func (x *DeactivateReq) String() string {
 func (*DeactivateReq) ProtoMessage() {}
 
 func (x *DeactivateReq) ProtoReflect() protoreflect.Message {
-	mi := &file_coordinator_proto_msgTypes[10]
+	mi := &file_coordinator_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -654,7 +561,7 @@ func (x *DeactivateReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeactivateReq.ProtoReflect.Descriptor instead.
 func (*DeactivateReq) Descriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{10}
+	return file_coordinator_proto_rawDescGZIP(), []int{8}
 }
 
 type DeactivateResp struct {
@@ -666,7 +573,7 @@ type DeactivateResp struct {
 func (x *DeactivateResp) Reset() {
 	*x = DeactivateResp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_coordinator_proto_msgTypes[11]
+		mi := &file_coordinator_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -679,7 +586,7 @@ func (x *DeactivateResp) String() string {
 func (*DeactivateResp) ProtoMessage() {}
 
 func (x *DeactivateResp) ProtoReflect() protoreflect.Message {
-	mi := &file_coordinator_proto_msgTypes[11]
+	mi := &file_coordinator_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +599,7 @@ func (x *DeactivateResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeactivateResp.ProtoReflect.Descriptor instead.
 func (*DeactivateResp) Descriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{11}
+	return file_coordinator_proto_rawDescGZIP(), []int{9}
 }
 
 type AppUsage struct {
@@ -706,7 +613,7 @@ type AppUsage struct {
 func (x *AppUsage) Reset() {
 	*x = AppUsage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_coordinator_proto_msgTypes[12]
+		mi := &file_coordinator_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -719,7 +626,7 @@ func (x *AppUsage) String() string {
 func (*AppUsage) ProtoMessage() {}
 
 func (x *AppUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_coordinator_proto_msgTypes[12]
+	mi := &file_coordinator_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +639,7 @@ func (x *AppUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppUsage.ProtoReflect.Descriptor instead.
 func (*AppUsage) Descriptor() ([]byte, []int) {
-	return file_coordinator_proto_rawDescGZIP(), []int{12}
+	return file_coordinator_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AppUsage) GetCpuTime() float32 {
@@ -740,6 +647,91 @@ func (x *AppUsage) GetCpuTime() float32 {
 		return x.CpuTime
 	}
 	return 0
+}
+
+type LeaseOffer struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	LeaseDurationSeconds uint32 `protobuf:"varint,1,opt,name=leaseDurationSeconds,proto3" json:"leaseDurationSeconds,omitempty"`
+}
+
+func (x *LeaseOffer) Reset() {
+	*x = LeaseOffer{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_coordinator_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LeaseOffer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseOffer) ProtoMessage() {}
+
+func (x *LeaseOffer) ProtoReflect() protoreflect.Message {
+	mi := &file_coordinator_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseOffer.ProtoReflect.Descriptor instead.
+func (*LeaseOffer) Descriptor() ([]byte, []int) {
+	return file_coordinator_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LeaseOffer) GetLeaseDurationSeconds() uint32 {
+	if x != nil {
+		return x.LeaseDurationSeconds
+	}
+	return 0
+}
+
+type LeaseReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *LeaseReq) Reset() {
+	*x = LeaseReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_coordinator_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LeaseReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseReq) ProtoMessage() {}
+
+func (x *LeaseReq) ProtoReflect() protoreflect.Message {
+	mi := &file_coordinator_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseReq.ProtoReflect.Descriptor instead.
+func (*LeaseReq) Descriptor() ([]byte, []int) {
+	return file_coordinator_proto_rawDescGZIP(), []int{12}
 }
 
 var File_coordinator_proto protoreflect.FileDescriptor
@@ -810,33 +802,30 @@ var file_coordinator_proto_rawDesc = []byte{
 	0x0a, 0x4d, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x55,
 	0x55, 0x49, 0x44, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x55, 0x55, 0x49, 0x44, 0x22,
 	0x1a, 0x0a, 0x08, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x73, 0x70, 0x12, 0x0e, 0x0a, 0x02, 0x6f,
-	0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x02, 0x6f, 0x6b, 0x22, 0x42, 0x0a, 0x0a, 0x4c,
-	0x65, 0x61, 0x73, 0x65, 0x4f, 0x66, 0x66, 0x65, 0x72, 0x12, 0x0e, 0x0a, 0x02, 0x6f, 0x6b, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x02, 0x6f, 0x6b, 0x12, 0x24, 0x0a, 0x0d, 0x6c, 0x65, 0x61,
-	0x73, 0x65, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0d, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22,
-	0x0a, 0x0a, 0x08, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x52, 0x65, 0x71, 0x22, 0x0f, 0x0a, 0x0d, 0x44,
+	0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x02, 0x6f, 0x6b, 0x22, 0x0f, 0x0a, 0x0d, 0x44,
 	0x65, 0x61, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x22, 0x10, 0x0a, 0x0e,
 	0x44, 0x65, 0x61, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x22, 0x24,
 	0x0a, 0x08, 0x41, 0x70, 0x70, 0x55, 0x73, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x70,
 	0x75, 0x54, 0x69, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x52, 0x07, 0x63, 0x70, 0x75,
-	0x54, 0x69, 0x6d, 0x65, 0x32, 0xc2, 0x01, 0x0a, 0x06, 0x4d, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x12,
-	0x33, 0x0a, 0x08, 0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x12, 0x12, 0x2e, 0x72, 0x70,
-	0x63, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x1a,
-	0x13, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e,
-	0x52, 0x65, 0x73, 0x70, 0x12, 0x23, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x0c, 0x2e, 0x72,
-	0x70, 0x63, 0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x1a, 0x0d, 0x2e, 0x72, 0x70, 0x63,
-	0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x73, 0x70, 0x12, 0x35, 0x0a, 0x0a, 0x44, 0x65, 0x61,
-	0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x12, 0x12, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x44, 0x65,
-	0x61, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x13, 0x2e, 0x72, 0x70,
-	0x63, 0x2e, 0x44, 0x65, 0x61, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70,
-	0x12, 0x27, 0x0a, 0x05, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x12, 0x0d, 0x2e, 0x72, 0x70, 0x63, 0x2e,
-	0x4c, 0x65, 0x61, 0x73, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x0f, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x4c,
-	0x65, 0x61, 0x73, 0x65, 0x4f, 0x66, 0x66, 0x65, 0x72, 0x42, 0x32, 0x5a, 0x30, 0x67, 0x69, 0x74,
-	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x65, 0x64, 0x67, 0x65, 0x6c, 0x65, 0x73, 0x73,
-	0x73, 0x79, 0x73, 0x2f, 0x6d, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x72, 0x75, 0x6e, 0x2f, 0x63, 0x6f,
-	0x6f, 0x72, 0x64, 0x69, 0x6e, 0x61, 0x74, 0x6f, 0x72, 0x2f, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x54, 0x69, 0x6d, 0x65, 0x22, 0x40, 0x0a, 0x0a, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x4f, 0x66, 0x66,
+	0x65, 0x72, 0x12, 0x32, 0x0a, 0x14, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x44, 0x75, 0x72, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x53, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x14, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x53,
+	0x65, 0x63, 0x6f, 0x6e, 0x64, 0x73, 0x22, 0x0a, 0x0a, 0x08, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x52,
+	0x65, 0x71, 0x32, 0x99, 0x01, 0x0a, 0x06, 0x4d, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x12, 0x33, 0x0a,
+	0x08, 0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x12, 0x12, 0x2e, 0x72, 0x70, 0x63, 0x2e,
+	0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x1a, 0x13, 0x2e,
+	0x72, 0x70, 0x63, 0x2e, 0x41, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65,
+	0x73, 0x70, 0x12, 0x23, 0x0a, 0x04, 0x50, 0x69, 0x6e, 0x67, 0x12, 0x0c, 0x2e, 0x72, 0x70, 0x63,
+	0x2e, 0x50, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x1a, 0x0d, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x50,
+	0x69, 0x6e, 0x67, 0x52, 0x65, 0x73, 0x70, 0x12, 0x35, 0x0a, 0x0a, 0x44, 0x65, 0x61, 0x63, 0x74,
+	0x69, 0x76, 0x61, 0x74, 0x65, 0x12, 0x12, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x44, 0x65, 0x61, 0x63,
+	0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x1a, 0x13, 0x2e, 0x72, 0x70, 0x63, 0x2e,
+	0x44, 0x65, 0x61, 0x63, 0x74, 0x69, 0x76, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x42, 0x32,
+	0x5a, 0x30, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x65, 0x64, 0x67,
+	0x65, 0x6c, 0x65, 0x73, 0x73, 0x73, 0x79, 0x73, 0x2f, 0x6d, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x72,
+	0x75, 0x6e, 0x2f, 0x63, 0x6f, 0x6f, 0x72, 0x64, 0x69, 0x6e, 0x61, 0x74, 0x6f, 0x72, 0x2f, 0x72,
+	0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -861,11 +850,11 @@ var file_coordinator_proto_goTypes = []interface{}{
 	(*Parameters)(nil),           // 5: rpc.Parameters
 	(*PingReq)(nil),              // 6: rpc.PingReq
 	(*PingResp)(nil),             // 7: rpc.PingResp
-	(*LeaseOffer)(nil),           // 8: rpc.LeaseOffer
-	(*LeaseReq)(nil),             // 9: rpc.LeaseReq
-	(*DeactivateReq)(nil),        // 10: rpc.DeactivateReq
-	(*DeactivateResp)(nil),       // 11: rpc.DeactivateResp
-	(*AppUsage)(nil),             // 12: rpc.AppUsage
+	(*DeactivateReq)(nil),        // 8: rpc.DeactivateReq
+	(*DeactivateResp)(nil),       // 9: rpc.DeactivateResp
+	(*AppUsage)(nil),             // 10: rpc.AppUsage
+	(*LeaseOffer)(nil),           // 11: rpc.LeaseOffer
+	(*LeaseReq)(nil),             // 12: rpc.LeaseReq
 	nil,                          // 13: rpc.Parameters.FilesEntry
 	nil,                          // 14: rpc.Parameters.EnvEntry
 }
@@ -878,14 +867,12 @@ var file_coordinator_proto_depIdxs = []int32{
 	14, // 5: rpc.Parameters.Env:type_name -> rpc.Parameters.EnvEntry
 	0,  // 6: rpc.Marble.Activate:input_type -> rpc.ActivationReq
 	6,  // 7: rpc.Marble.Ping:input_type -> rpc.PingReq
-	10, // 8: rpc.Marble.Deactivate:input_type -> rpc.DeactivateReq
-	9,  // 9: rpc.Marble.Lease:input_type -> rpc.LeaseReq
-	4,  // 10: rpc.Marble.Activate:output_type -> rpc.ActivationResp
-	7,  // 11: rpc.Marble.Ping:output_type -> rpc.PingResp
-	11, // 12: rpc.Marble.Deactivate:output_type -> rpc.DeactivateResp
-	8,  // 13: rpc.Marble.Lease:output_type -> rpc.LeaseOffer
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
+	8,  // 8: rpc.Marble.Deactivate:input_type -> rpc.DeactivateReq
+	4,  // 9: rpc.Marble.Activate:output_type -> rpc.ActivationResp
+	7,  // 10: rpc.Marble.Ping:output_type -> rpc.PingResp
+	9,  // 11: rpc.Marble.Deactivate:output_type -> rpc.DeactivateResp
+	9,  // [9:12] is the sub-list for method output_type
+	6,  // [6:9] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -994,30 +981,6 @@ func file_coordinator_proto_init() {
 			}
 		}
 		file_coordinator_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LeaseOffer); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_coordinator_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LeaseReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_coordinator_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeactivateReq); i {
 			case 0:
 				return &v.state
@@ -1029,7 +992,7 @@ func file_coordinator_proto_init() {
 				return nil
 			}
 		}
-		file_coordinator_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_coordinator_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeactivateResp); i {
 			case 0:
 				return &v.state
@@ -1041,8 +1004,32 @@ func file_coordinator_proto_init() {
 				return nil
 			}
 		}
-		file_coordinator_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_coordinator_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AppUsage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_coordinator_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LeaseOffer); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_coordinator_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LeaseReq); i {
 			case 0:
 				return &v.state
 			case 1:

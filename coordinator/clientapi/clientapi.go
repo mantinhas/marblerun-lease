@@ -50,8 +50,9 @@ type core interface {
 	GetQuote() []byte
 	GenerateQuote([]byte) error
 	SetupKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
-	SetupLeaseKeepAlive(string, *x509.Certificate, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
+	SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
 	ExtractKeepAliveSettings(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
+	ExtractLeaseKeepAliveSettings(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
 	DeactivateMarbles(context.Context) error
 	GetCertQuote(wrapper.Wrapper) (string, []byte, error)
 }
@@ -475,9 +476,6 @@ func (a *ClientAPI) SetManifest(ctx context.Context, rawManifest []byte) (recove
 		a.log.Error("sealing of state failed", zap.Error(err))
 	}
 
-	// setup keepalive
-	url, manifestCertificate, retries, pingInterval, retryInterval := a.core.ExtractKeepAliveSettings(mnf.DeactivationSettings["Coordinator"])
-
 	rootCert, err := txdata.GetCertificate(constants.SKCoordinatorRootCert)
 	if err != nil {
 		return nil, err
@@ -494,11 +492,13 @@ func (a *ClientAPI) SetManifest(ctx context.Context, rawManifest []byte) (recove
 
 	switch trust_protocol {
 	case "ping":
+		url, manifestCertificate, retries, pingInterval, retryInterval := a.core.ExtractKeepAliveSettings(mnf.DeactivationSettings["Coordinator"])
 		if err := a.core.SetupKeepAlive(url, manifestCertificate, retries, pingInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert); err != nil {
 			return nil, err
 		}
 	case "lease":
-		if err := a.core.SetupLeaseKeepAlive(url, manifestCertificate, rootCertString, quote, rootPrivK, rootCert); err != nil {
+		url, manifestCertificate, retries, leaseInterval, retryInterval := a.core.ExtractLeaseKeepAliveSettings(mnf.DeactivationSettings["Coordinator"])
+		if err := a.core.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert); err != nil {
 			return nil, err
 		}
 	}

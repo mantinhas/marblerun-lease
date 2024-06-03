@@ -164,16 +164,45 @@ func (c *Core) Activate(ctx context.Context, req *rpc.ActivationReq) (res *rpc.A
 		return nil, status.Errorf(codes.Internal, "retrieving manifest: %s", err)
 	}
 
-	_, _, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
+	var resp *rpc.ActivationResp
 
-	// write response
-	resp := &rpc.ActivationResp{
-		Parameters: params,
-		DeactivationSettings: &rpc.DeactivationSettings{
-			PingInterval:  int64(pingInterval.Seconds()),
-			RetryInterval: int64(retryInterval.Seconds()),
-			Retries:       int32(retries),
-		},
+	switch manifest.DeactivationSettings["Marbles"].TrustProtocol {
+	case "ping":
+		_, _, retries, pingInterval, retryInterval := c.ExtractKeepAliveSettings(manifest.DeactivationSettings["Marbles"])
+
+		// write response
+		resp = &rpc.ActivationResp{
+			Parameters: params,
+			DeactivationSettings: &rpc.DeactivationSettings{
+				TrustProtocol: "ping",
+				Settings: &rpc.DeactivationSettings_PingSettings{
+					PingSettings: &rpc.PingSettings{
+						RequestInterval: pingInterval.String(),
+						Retries:         int32(retries),
+						RetryInterval:   retryInterval.String(),
+					},
+				},
+			},
+		}
+	case "lease":
+		_, _, retries, leaseInterval, retryInterval := c.ExtractLeaseKeepAliveSettings(manifest.DeactivationSettings["Marbles"])
+
+		// write response
+		resp = &rpc.ActivationResp{
+			Parameters: params,
+			DeactivationSettings: &rpc.DeactivationSettings{
+				TrustProtocol: "lease",
+				Settings: &rpc.DeactivationSettings_LeaseSettings{
+					LeaseSettings: &rpc.LeaseSettings{
+						RequestInterval: leaseInterval.String(),
+						Retries:         int32(retries),
+						RetryInterval:   retryInterval.String(),
+					},
+				},
+			},
+		}
+	default:
+		return nil, status.Errorf(codes.Internal, "unknown trust protocol %q", manifest.DeactivationSettings["Marbles"].TrustProtocol)
 	}
 
 	// get client IP, save it for deactivation

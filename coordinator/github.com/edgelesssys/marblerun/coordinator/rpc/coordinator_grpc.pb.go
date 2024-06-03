@@ -22,7 +22,6 @@ type MarbleClient interface {
 	Activate(ctx context.Context, in *ActivationReq, opts ...grpc.CallOption) (*ActivationResp, error)
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
 	Deactivate(ctx context.Context, in *DeactivateReq, opts ...grpc.CallOption) (*DeactivateResp, error)
-	Lease(ctx context.Context, in *LeaseReq, opts ...grpc.CallOption) (*LeaseOffer, error)
 }
 
 type marbleClient struct {
@@ -60,15 +59,6 @@ func (c *marbleClient) Deactivate(ctx context.Context, in *DeactivateReq, opts .
 	return out, nil
 }
 
-func (c *marbleClient) Lease(ctx context.Context, in *LeaseReq, opts ...grpc.CallOption) (*LeaseOffer, error) {
-	out := new(LeaseOffer)
-	err := c.cc.Invoke(ctx, "/rpc.Marble/Lease", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MarbleServer is the server API for Marble service.
 // All implementations must embed UnimplementedMarbleServer
 // for forward compatibility
@@ -77,7 +67,6 @@ type MarbleServer interface {
 	Activate(context.Context, *ActivationReq) (*ActivationResp, error)
 	Ping(context.Context, *PingReq) (*PingResp, error)
 	Deactivate(context.Context, *DeactivateReq) (*DeactivateResp, error)
-	Lease(context.Context, *LeaseReq) (*LeaseOffer, error)
 	mustEmbedUnimplementedMarbleServer()
 }
 
@@ -93,9 +82,6 @@ func (UnimplementedMarbleServer) Ping(context.Context, *PingReq) (*PingResp, err
 }
 func (UnimplementedMarbleServer) Deactivate(context.Context, *DeactivateReq) (*DeactivateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Deactivate not implemented")
-}
-func (UnimplementedMarbleServer) Lease(context.Context, *LeaseReq) (*LeaseOffer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Lease not implemented")
 }
 func (UnimplementedMarbleServer) mustEmbedUnimplementedMarbleServer() {}
 
@@ -164,24 +150,6 @@ func _Marble_Deactivate_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Marble_Lease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LeaseReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MarbleServer).Lease(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rpc.Marble/Lease",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MarbleServer).Lease(ctx, req.(*LeaseReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Marble_ServiceDesc is the grpc.ServiceDesc for Marble service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,10 +168,6 @@ var Marble_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Deactivate",
 			Handler:    _Marble_Deactivate_Handler,
-		},
-		{
-			MethodName: "Lease",
-			Handler:    _Marble_Lease_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
