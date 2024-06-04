@@ -50,7 +50,7 @@ type core interface {
 	GetQuote() []byte
 	GenerateQuote([]byte) error
 	SetupKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
-	SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error
+	SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate, manifest.Deactivation) error
 	ExtractKeepAliveSettings(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
 	ExtractLeaseKeepAliveSettings(manifest.Deactivation) (string, *x509.Certificate, int, time.Duration, time.Duration)
 	DeactivateMarbles(context.Context) error
@@ -498,7 +498,7 @@ func (a *ClientAPI) SetManifest(ctx context.Context, rawManifest []byte) (recove
 		}
 	case "lease":
 		url, manifestCertificate, retries, leaseInterval, retryInterval := a.core.ExtractLeaseKeepAliveSettings(mnf.DeactivationSettings["Coordinator"])
-		if err := a.core.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert); err != nil {
+		if err := a.core.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, rootPrivK, rootCert, mnf.DeactivationSettings["Marbles"]); err != nil {
 			return nil, err
 		}
 	}

@@ -9,7 +9,8 @@ service Marble {
 
   rpc Ping (PingReq) returns (PingResp);
   rpc Deactivate (DeactivateReq) returns (DeactivateResp);
-  rpc Lease(LeaseReq) returns (LeaseRenew);
+  rpc PropagateLease(LeaseOffer) returns (LeaseResp);
+  rpc RemainingLease(RemainingLeaseReq) returns (RemainingLeaseOffer);
 }
 
 message ActivationReq {
@@ -60,17 +61,27 @@ message PingResp {
   bool ok = 1;
 }
 
-message LeaseRenew {
-  bool ok = 1;
-  string leaseDuration = 2;
+message LeaseOffer {
+  string leaseDuration = 1;
   // New feature?
   //bool renewContract = 5;
   //optional AppUsage usageLimit= 6;
 }
 
-message LeaseReq {
+message LeaseResp {
+  bool ok = 1;
+  //string MarbleType = 1;
+  //string UUID = 2;
+}
+
+message RemainingLeaseReq{
   string MarbleType = 1;
   string UUID = 2;
+}
+
+message RemainingLeaseOffer{
+  bool ok = 1;
+  string leaseDuration = 2;
 }
 
 message DeactivateReq {

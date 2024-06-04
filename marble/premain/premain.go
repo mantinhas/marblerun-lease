@@ -34,6 +34,9 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+var leaseTimer *time.Timer
+var renewed = make(chan time.Duration)
+
 // storeUUID stores the uuid to the fs.
 func storeUUID(appFs afero.Fs, marbleUUID uuid.UUID, filename string) error {
 	uuidBytes, err := marbleUUID.MarshalText()
@@ -201,6 +204,12 @@ func PreMainEx(issuer quote.Issuer, activate ActivateFunc, hostfs, enclavefs afe
 
 	tlsCredentials = credentials.NewTLS(tlsConfig)
 
+	// open server
+	log.Println("opening server")
+	go RunCoordinatorServer(tlsCredentials)
+
+	log.Println("done with PreMain")
+
 	switch deactivationSettings.TrustProtocol {
 	case "ping":
 		// setup keepalive
@@ -211,18 +220,18 @@ func PreMainEx(issuer quote.Issuer, activate ActivateFunc, hostfs, enclavefs afe
 		}
 	case "lease":
 		// setup lease
-		log.Println("setting up lease client")
+		log.Println("requesting coordinator for initial lease")
 
-		if err := setupLeaseKeepAlive(coordAddr, tlsCredentials, marbleType, marbleUUID.String(), deactivationSettings); err != nil {
+		if err := requestCoordinatorForLease(coordAddr, tlsCredentials, marbleType, marbleUUID.String(), deactivationSettings); err != nil {
+			return err
+		}
+
+		log.Println("starting lease client")
+		if err := setupLeaseKeepAlive(); err != nil {
 			return err
 		}
 	}
 
-	// open server
-	log.Println("opening server")
-	go RunCoordinatorServer(tlsCredentials)
-
-	log.Println("done with PreMain")
 	return nil
 }
 
@@ -276,8 +285,7 @@ func applyParameters(params *rpc.Parameters, fs afero.Fs) error {
 	return nil
 }
 
-func setupLeaseKeepAlive(coordAddr string, tlsCredentials credentials.TransportCredentials, marbleType string, uuid string, deactivationSettings *rpc.DeactivationSettings) error {
-
+func requestCoordinatorForLease(coordAddr string, tlsCredentials credentials.TransportCredentials, marbleType string, uuid string, deactivationSettings *rpc.DeactivationSettings) error {
 	leaseTime, err := time.ParseDuration(deactivationSettings.GetLeaseSettings().RequestInterval)
 	retryInterval, err := time.ParseDuration(deactivationSettings.GetLeaseSettings().RetryInterval)
 	retries := int(deactivationSettings.GetLeaseSettings().Retries)
@@ -289,90 +297,66 @@ func setupLeaseKeepAlive(coordAddr string, tlsCredentials credentials.TransportC
 
 	client := rpc.NewMarbleClient(connection)
 
-	go func() {
+	func() {
 		defer connection.Close()
 
-		var successfulLease bool
+		for i := 0; i < retries; i++ {
+			err := func() error {
+				log.Printf("Requesting Lease... retry %d/%d\n", i+1, retries)
+				ctx, cancel := context.WithTimeout(context.Background(), leaseTime/2)
+				defer cancel()
 
-		for {
-			// Timeout for the lease
-			log.Printf("Starting Lease: %s\n", leaseTime.String())
-			timer := time.NewTimer(leaseTime)
-
-			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
-			resultChan := make(chan string)
-			errorChan := make(chan error)
-			done := make(chan bool)
-			successfulLease = false
-			time.AfterFunc(leaseTime/2, func() {
-				for i := 0; i < retries; i++ {
-					func() error {
-						log.Printf("Requesting Lease... retry %d/%d\n", i+1, retries)
-						ctx, cancel := context.WithTimeout(context.Background(), leaseTime/2)
-						defer cancel()
-
-						// Attempt to re-dial if necessary
-						if connection.GetState() != connectivity.Ready {
-							connection, err = grpc.Dial(coordAddr, grpc.WithTransportCredentials(tlsCredentials))
-							if err != nil {
-								log.Printf("re-dial attempt failed: %v\n", err)
-								return err
-							}
-						}
-
-						resp, err := client.Lease(ctx, &rpc.LeaseReq{})
-
-						if err != nil {
-							log.Printf("LeaseReq failed: %v", (err))
-							return err
-						}
-						if !resp.Ok {
-							log.Printf("LeaseReq failed: response not ok\n")
-							return errors.New("LeaseReq failed: response not ok")
-						}
-
-						done <- true
-						resultChan <- resp.LeaseDuration
-						errorChan <- nil
-						successfulLease = true
-						return nil
-					}()
-					if successfulLease {
-						break
+				// Attempt to re-dial if necessary
+				if connection.GetState() != connectivity.Ready {
+					connection, err = grpc.Dial(coordAddr, grpc.WithTransportCredentials(tlsCredentials))
+					if err != nil {
+						log.Printf("re-dial attempt failed: %v\n", err)
+						return err
 					}
-					time.Sleep(retryInterval)
 				}
-			})
 
-			waitOutLease := func() {
-				<-timer.C
-				log.Println("Ended Lease.")
-			}
+				resp, err := client.RemainingLease(ctx, &rpc.RemainingLeaseReq{})
+				log.Printf("RemainingLease response: %s\n", resp.LeaseDuration)
 
-			// defer waiting for the timer to finish if it didnt finish yet
-			select {
-			case <-done:
-				result, err := <-resultChan, <-errorChan
 				if err != nil {
-					log.Printf("LeaseReq failed: %v\n", (err))
-					waitOutLease()
-					os.Exit(1)
-					return
-				} else {
-					leaseTime, err = time.ParseDuration(result)
-					log.Printf("Lease renewed for another %s\n", leaseTime.String())
-					continue
+					log.Printf("LeaseReq failed: %v", (err))
+					return err
 				}
-			case <-timer.C:
-				// Lease expired
-				log.Println("Lease expired without renewal after all retries failed. Exiting.")
-				os.Exit(1)
+				if !resp.Ok {
+					log.Printf("LeaseReq failed: response not ok\n")
+					return errors.New("LeaseReq failed: response not ok")
+				}
+
+				leaseTime, err = time.ParseDuration(resp.LeaseDuration)
+				return nil
+			}()
+
+			if err == nil {
+				leaseTimer = time.NewTimer(leaseTime)
 				return
 			}
+			time.Sleep(retryInterval)
 		}
+
+		log.Println("exiting after all retries failed")
+		os.Exit(1)
 	}()
 
 	return nil
+}
+
+func setupLeaseKeepAlive() error {
+	for {
+		<-leaseTimer.C
+		select {
+		case leaseTime := <-renewed:
+			log.Println("Lease finished. Starting new lease with duration: ", leaseTime.String())
+			leaseTimer.Reset(leaseTime)
+		default:
+			log.Println("Lease finished. Exiting")
+			os.Exit(1)
+		}
+	}
 }
 
 func setupKeepAlive(coordAddr string, tlsCredentials credentials.TransportCredentials, marbleType string, uuid string, deactivationSettings *rpc.DeactivationSettings) error {
@@ -478,4 +462,20 @@ func (s *server) Deactivate(ctx context.Context, in *rpc.DeactivateReq) (*rpc.De
 	}()
 
 	return &rpc.DeactivateResp{}, nil
+}
+
+func (s *server) PropagateLease(ctx context.Context, in *rpc.LeaseOffer) (*rpc.LeaseResp, error) {
+	log.Printf("Received lease offer for %s\n", in.LeaseDuration)
+	leaseTime, err := time.ParseDuration(in.LeaseDuration)
+
+	if err != nil {
+		log.Printf("Failed to parse lease duration: %v\n", err)
+		return &rpc.LeaseResp{Ok: false}, nil
+	}
+
+	log.Printf("Lease accepted for %s\n", leaseTime.String())
+	go func() {
+		renewed <- leaseTime
+	}()
+	return &rpc.LeaseResp{Ok: true}, nil
 }

@@ -640,8 +640,8 @@ func (c *Core) Ping(ctx context.Context, req *rpc.PingReq) (res *rpc.PingResp, e
 	return resp, nil
 }
 
-func (c *Core) Lease(ctx context.Context, req *rpc.LeaseReq) (res *rpc.LeaseOffer, err error) {
-	c.log.Info("Received lease request") //, zap.String("MarbleType", req.MarbleType))
+func (c *Core) RemainingLease(ctx context.Context, req *rpc.RemainingLeaseReq) (resp *rpc.RemainingLeaseOffer, err error) {
+	c.log.Info("Received marble lease request") //, zap.String("MarbleType", req.MarbleType))
 
 	// defer c.mux.Unlock()
 
@@ -693,18 +693,16 @@ func (c *Core) Lease(ctx context.Context, req *rpc.LeaseReq) (res *rpc.LeaseOffe
 	// write response
 	allowedLeaseTime, err := c.GetAllowedLeaseTime()
 
-	var resp *rpc.LeaseOffer
-
 	if err != nil {
 		// Print returned err
 		c.log.Info("Error in GetAllowedLeaseTime", zap.Error(err))
 
-		resp = &rpc.LeaseOffer{
+		resp = &rpc.RemainingLeaseOffer{
 			Ok:            false,
 			LeaseDuration: "0s",
 		}
 	} else {
-		resp = &rpc.LeaseOffer{
+		resp = &rpc.RemainingLeaseOffer{
 			Ok:            true,
 			LeaseDuration: allowedLeaseTime.String(),
 		}
@@ -716,7 +714,7 @@ func (c *Core) Lease(ctx context.Context, req *rpc.LeaseReq) (res *rpc.LeaseOffe
 	// }
 
 	//c.metrics.marbleAPI.activationSuccess.WithLabelValues(req.GetMarbleType(), req.GetUUID()).Inc()
-	c.log.Info("Successfully responded to Marble lease", zap.String("MarbleType", req.GetMarbleType()), zap.String("UUID", req.GetUUID()))
+	c.log.Info("Successfully responded to Marble lease", zap.String("LeaseDuration", resp.LeaseDuration))
 
 	// if c.eventlog != nil {
 	// 	c.eventlog.Activation(req.GetMarbleType(), req.GetUUID(), req.GetQuote())

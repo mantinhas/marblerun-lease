@@ -248,7 +248,7 @@ func NewCore(
 				}
 			case "lease":
 				url, manifestCertificate, retries, leaseInterval, retryInterval := c.ExtractLeaseKeepAliveSettings(manifest.DeactivationSettings["Coordinator"])
-				if err := c.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, privk, rootCert); err != nil {
+				if err := c.SetupLeaseKeepAlive(url, manifestCertificate, retries, leaseInterval, retryInterval, rootCertString, quote, privk, rootCert, manifest.DeactivationSettings["Marbles"]); err != nil {
 					return nil, err
 				}
 			}
@@ -674,7 +674,11 @@ type transactionHandle interface {
 	LoadState() ([]byte, error)
 }
 
-func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certificate, retries int, leaseTime time.Duration, retryInterval time.Duration, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate) error {
+func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certificate, retries int, leaseTime time.Duration, retryInterval time.Duration, rootCertString string, quote []byte, privk *ecdsa.PrivateKey, rootCert *x509.Certificate, manifestDeactivation manifest.Deactivation) error {
+	retriesM := manifestDeactivation.LeaseSettings.Retries
+	leaseIntervalM, _ := time.ParseDuration(manifestDeactivation.LeaseSettings.RequestInterval) // _ because we know it's valid from previous validation
+	retryIntervalM, _ := time.ParseDuration(manifestDeactivation.LeaseSettings.RetryInterval)   // _ because we know it's valid from previous validation
+
 	clientCert := util.TLSCertFromDER(rootCert.Raw, privk)
 
 	tlsConfig := tls.Config{
@@ -785,6 +789,10 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 					c.leaseState.afterStartAliveDuration += leaseTime
 					c.leaseState.rwtex.Unlock()
 					c.log.Info("Lease offered", zap.Duration("leaseTime", leaseTime))
+
+					ctx, cancel := context.WithTimeout(context.Background(), leaseTime/2)
+					defer cancel()
+					c.propagateLease(ctx, result, retriesM, leaseIntervalM, retryIntervalM)
 					waitOutLease()
 				}
 			case <-c.leaseState.currentLeaseTimer.C:
@@ -930,6 +938,84 @@ func (c *Core) ExtractLeaseKeepAliveSettings(manifestDeactivation manifest.Deact
 	}
 
 	return connectionURL, connectionCertificate, retries, leaseInterval, retryInterval
+
+}
+func (c *Core) propagateLease(ctx context.Context, leaseTime string, retries int, leaseInterval time.Duration, retryInterval time.Duration) error {
+
+	data, rollback, _, err := wrapper.WrapTransaction(ctx, c.txHandle)
+	if err != nil {
+		return err
+	}
+	defer rollback()
+
+	marbleIpIter, err := data.GetIterator(request.MarbleIP)
+	if err != nil {
+		return err
+	}
+
+	marbleRootCertificate, err := data.GetCertificate(constants.SKMarbleRootCert)
+	if err != nil {
+		return err
+	}
+	certPool := x509.NewCertPool()
+	certPool.AddCert(marbleRootCertificate)
+
+	privk, _ := data.GetPrivateKey(constants.SKCoordinatorIntermediateKey)
+
+	creds, _ := util.LoadGRPCTLSCredentials(marbleRootCertificate, privk, certPool, false)
+
+	var wg sync.WaitGroup
+	var resp rpc.LeaseResp
+	for marbleIpIter.HasNext() {
+		wg.Add(1)
+		go func() error {
+			defer wg.Done()
+			name, err := marbleIpIter.GetNext()
+			if err != nil {
+				return err
+			}
+			ip, err := data.GetMarbleIP(name)
+			if err != nil {
+				return err
+			}
+			// url is ip with port 50060
+			url := fmt.Sprintf("%s%s", ip, constants.MarbleDeactivationPort)
+
+			successfulPropagate := false
+			for i := 0; i < retries; i++ {
+				c.log.Info("Propagating lease", zap.String("url", url), zap.Int("retry", i+1), zap.Int("retries", retries))
+
+				conn, err := grpc.Dial(url, grpc.WithTransportCredentials(creds))
+				if err != nil {
+					return err
+				}
+				defer conn.Close()
+
+				client := rpc.NewMarbleClient(conn)
+
+				resp, err := client.PropagateLease(ctx, &rpc.LeaseOffer{
+					LeaseDuration: leaseTime,
+				})
+
+				if resp.Ok && err == nil {
+					successfulPropagate = true
+					break
+				}
+
+				time.Sleep(retryInterval)
+			}
+
+			if successfulPropagate {
+				c.log.Info("Successfully propagated lease", zap.String("url", url))
+			} else {
+				c.log.Error("Failed to propagate lease", zap.String("url", url), zap.Error(err), zap.Bool("resp.Ok", resp.Ok))
+			}
+			return err
+		}()
+	}
+	wg.Wait()
+
+	return nil
 
 }
 

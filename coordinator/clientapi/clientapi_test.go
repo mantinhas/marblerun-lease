@@ -669,7 +669,7 @@ func (c *fakeCore) SetupKeepAlive(string, *x509.Certificate, int, time.Duration,
 	return nil
 }
 
-func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate) error {
+func (c *fakeCore) SetupLeaseKeepAlive(string, *x509.Certificate, int, time.Duration, time.Duration, string, []byte, *ecdsa.PrivateKey, *x509.Certificate, manifest.Deactivation) error {
 	if c.setupLeaseKeepAlive != nil {
 		return c.setupLeaseKeepAlive
 	}

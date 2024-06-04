@@ -22,7 +22,8 @@ type MarbleClient interface {
 	Activate(ctx context.Context, in *ActivationReq, opts ...grpc.CallOption) (*ActivationResp, error)
 	Ping(ctx context.Context, in *PingReq, opts ...grpc.CallOption) (*PingResp, error)
 	Deactivate(ctx context.Context, in *DeactivateReq, opts ...grpc.CallOption) (*DeactivateResp, error)
-	Lease(ctx context.Context, in *LeaseReq, opts ...grpc.CallOption) (*LeaseOffer, error)
+	PropagateLease(ctx context.Context, in *LeaseOffer, opts ...grpc.CallOption) (*LeaseResp, error)
+	RemainingLease(ctx context.Context, in *RemainingLeaseReq, opts ...grpc.CallOption) (*RemainingLeaseOffer, error)
 }
 
 type marbleClient struct {
@@ -60,9 +61,18 @@ func (c *marbleClient) Deactivate(ctx context.Context, in *DeactivateReq, opts .
 	return out, nil
 }
 
-func (c *marbleClient) Lease(ctx context.Context, in *LeaseReq, opts ...grpc.CallOption) (*LeaseOffer, error) {
-	out := new(LeaseOffer)
-	err := c.cc.Invoke(ctx, "/rpc.Marble/Lease", in, out, opts...)
+func (c *marbleClient) PropagateLease(ctx context.Context, in *LeaseOffer, opts ...grpc.CallOption) (*LeaseResp, error) {
+	out := new(LeaseResp)
+	err := c.cc.Invoke(ctx, "/rpc.Marble/PropagateLease", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *marbleClient) RemainingLease(ctx context.Context, in *RemainingLeaseReq, opts ...grpc.CallOption) (*RemainingLeaseOffer, error) {
+	out := new(RemainingLeaseOffer)
+	err := c.cc.Invoke(ctx, "/rpc.Marble/RemainingLease", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +87,8 @@ type MarbleServer interface {
 	Activate(context.Context, *ActivationReq) (*ActivationResp, error)
 	Ping(context.Context, *PingReq) (*PingResp, error)
 	Deactivate(context.Context, *DeactivateReq) (*DeactivateResp, error)
-	Lease(context.Context, *LeaseReq) (*LeaseOffer, error)
+	PropagateLease(context.Context, *LeaseOffer) (*LeaseResp, error)
+	RemainingLease(context.Context, *RemainingLeaseReq) (*RemainingLeaseOffer, error)
 	mustEmbedUnimplementedMarbleServer()
 }
 
@@ -94,8 +105,11 @@ func (UnimplementedMarbleServer) Ping(context.Context, *PingReq) (*PingResp, err
 func (UnimplementedMarbleServer) Deactivate(context.Context, *DeactivateReq) (*DeactivateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Deactivate not implemented")
 }
-func (UnimplementedMarbleServer) Lease(context.Context, *LeaseReq) (*LeaseOffer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Lease not implemented")
+func (UnimplementedMarbleServer) PropagateLease(context.Context, *LeaseOffer) (*LeaseResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PropagateLease not implemented")
+}
+func (UnimplementedMarbleServer) RemainingLease(context.Context, *RemainingLeaseReq) (*RemainingLeaseOffer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemainingLease not implemented")
 }
 func (UnimplementedMarbleServer) mustEmbedUnimplementedMarbleServer() {}
 
@@ -164,20 +178,38 @@ func _Marble_Deactivate_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Marble_Lease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LeaseReq)
+func _Marble_PropagateLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LeaseOffer)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MarbleServer).Lease(ctx, in)
+		return srv.(MarbleServer).PropagateLease(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/rpc.Marble/Lease",
+		FullMethod: "/rpc.Marble/PropagateLease",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MarbleServer).Lease(ctx, req.(*LeaseReq))
+		return srv.(MarbleServer).PropagateLease(ctx, req.(*LeaseOffer))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Marble_RemainingLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemainingLeaseReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MarbleServer).RemainingLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpc.Marble/RemainingLease",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MarbleServer).RemainingLease(ctx, req.(*RemainingLeaseReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -202,8 +234,12 @@ var Marble_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Marble_Deactivate_Handler,
 		},
 		{
-			MethodName: "Lease",
-			Handler:    _Marble_Lease_Handler,
+			MethodName: "PropagateLease",
+			Handler:    _Marble_PropagateLease_Handler,
+		},
+		{
+			MethodName: "RemainingLease",
+			Handler:    _Marble_RemainingLease_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
