@@ -497,6 +497,10 @@ func (m Manifest) Check(zaplogger *zap.Logger) error {
 		}
 	}
 
+	if m.DeactivationSettings["Marbles"].TrustProtocol == "lease" && m.DeactivationSettings["Coordinator"].TrustProtocol == "ping" {
+		return fmt.Errorf("marbles cannot have a TrustProtocol of type Lease, while the coordinator has type Ping")
+	}
+
 	for deactivationName, d := range m.DeactivationSettings {
 		if deactivationName == "Coordinator" || deactivationName == "Marbles" {
 			if deactivationName == "Coordinator" {

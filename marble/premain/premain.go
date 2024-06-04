@@ -360,8 +360,8 @@ func setupLeaseKeepAlive(coordAddr string, tlsCredentials credentials.TransportC
 					return
 				} else {
 					leaseTime, err = time.ParseDuration(result)
-					log.Printf("Lease offered for %s\n", leaseTime.String())
-					waitOutLease()
+					log.Printf("Lease renewed for another %s\n", leaseTime.String())
+					continue
 				}
 			case <-timer.C:
 				// Lease expired

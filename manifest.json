@@ -67,8 +67,8 @@
             }
         },
         "Marbles": {
-            "TrustProtocol": "ping",
-            "PingSettings": {
+            "TrustProtocol": "lease",
+            "LeaseSettings": {
                 "RequestInterval": "5s",
                 "RetryInterval": "1s",
                 "Retries": 2

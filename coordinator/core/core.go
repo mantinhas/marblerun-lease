@@ -52,6 +52,27 @@ import (
 )
 
 // Core implements the core logic of the Coordinator.
+
+type LeaseState struct {
+	start                   time.Time
+	afterStartAliveDuration time.Duration
+	currentLeaseTimer       *time.Timer
+	rwtex                   sync.RWMutex
+}
+
+func (c *Core) GetAllowedLeaseTime() (time.Duration, error) {
+	c.leaseState.rwtex.RLock()
+	defer c.leaseState.rwtex.RUnlock()
+
+	var result time.Duration = c.leaseState.afterStartAliveDuration - time.Since(c.leaseState.start)
+
+	if result <= 0 {
+		return 0, errors.New("allowed lease time is non positive")
+	}
+	return result, nil
+
+}
+
 type Core struct {
 	mux sync.Mutex
 
@@ -66,6 +87,8 @@ type Core struct {
 
 	log      *zap.Logger
 	eventlog *events.Log
+
+	leaseState LeaseState
 
 	rpc.UnimplementedMarbleServer
 }
@@ -690,7 +713,11 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 		for {
 			// Timeout for the lease
 			c.log.Info("Starting Lease:", zap.Duration("leaseTime", leaseTime))
-			timer := time.NewTimer(leaseTime)
+			c.leaseState.rwtex.Lock()
+			c.leaseState.start = time.Now()
+			c.leaseState.afterStartAliveDuration = leaseTime
+			c.leaseState.currentLeaseTimer = time.NewTimer(leaseTime)
+			c.leaseState.rwtex.Unlock()
 
 			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
 			resultChan := make(chan string)
@@ -739,7 +766,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 			})
 
 			waitOutLease := func() {
-				<-timer.C
+				<-c.leaseState.currentLeaseTimer.C
 				c.log.Info("Ended Lease.")
 			}
 
@@ -753,11 +780,14 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 					os.Exit(1)
 					return
 				} else {
+					c.leaseState.rwtex.Lock()
 					leaseTime, err = time.ParseDuration(result)
+					c.leaseState.afterStartAliveDuration += leaseTime
+					c.leaseState.rwtex.Unlock()
 					c.log.Info("Lease offered", zap.Duration("leaseTime", leaseTime))
 					waitOutLease()
 				}
-			case <-timer.C:
+			case <-c.leaseState.currentLeaseTimer.C:
 				// Lease expired
 				c.log.Info("Lease expired without renewal after all retries failed. Exiting.")
 				os.Exit(1)

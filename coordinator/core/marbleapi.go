@@ -639,3 +639,88 @@ func (c *Core) Ping(ctx context.Context, req *rpc.PingReq) (res *rpc.PingResp, e
 
 	return resp, nil
 }
+
+func (c *Core) Lease(ctx context.Context, req *rpc.LeaseReq) (res *rpc.LeaseOffer, err error) {
+	c.log.Info("Received lease request") //, zap.String("MarbleType", req.MarbleType))
+
+	// defer c.mux.Unlock()
+
+	// if err := c.RequireState(ctx, state.AcceptingMarbles, state.Deactivated); err != nil {
+	// 	return nil, status.Error(codes.FailedPrecondition, "cannot accept marble pings in current state")
+	// }
+
+	defer func() {
+		if err != nil {
+			c.log.Error("Marble lease response failed") //, zap.String("marbleType", req.GetMarbleType()), zap.String("uuid", req.GetUUID()))
+		}
+	}()
+
+	// We need to manually check the marble certificate
+	// get the marble's TLS cert (used in this connection)
+	tlsCert := getClientTLSCert(ctx)
+	if tlsCert == nil {
+		c.log.Error("Couldn't get marble TLS certificate")
+		return nil, status.Error(codes.Unauthenticated, "couldn't get marble TLS certificate")
+	}
+
+	txdata, rollback, _, err := wrapper.WrapTransaction(ctx, c.txHandle)
+	if err != nil {
+		c.log.Error("Initialize store transaction failed", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "initializing store transaction: %s", err)
+	}
+	defer rollback()
+
+	// get intermediate certificate
+	intermedCert, err := txdata.GetCertificate(constants.SKCoordinatorIntermediateCert)
+	if err != nil {
+		c.log.Error("Couldn't retrieve intermediate certificate")
+		return nil, status.Error(codes.Internal, "couldn't retrieve intermediate certificate")
+	}
+
+	certPool := x509.NewCertPool()
+	certPool.AddCert(intermedCert)
+
+	opts := x509.VerifyOptions{
+		Roots: certPool,
+	}
+
+	// check if the certificate is valid
+	if _, err := tlsCert.Verify(opts); err != nil {
+		c.log.Error("Couldn't verify marble certificate")
+		return nil, status.Error(codes.Unauthenticated, "couldn't verify marble certificate")
+	}
+
+	// write response
+	allowedLeaseTime, err := c.GetAllowedLeaseTime()
+
+	var resp *rpc.LeaseOffer
+
+	if err != nil {
+		// Print returned err
+		c.log.Info("Error in GetAllowedLeaseTime", zap.Error(err))
+
+		resp = &rpc.LeaseOffer{
+			Ok:            false,
+			LeaseDuration: "0s",
+		}
+	} else {
+		resp = &rpc.LeaseOffer{
+			Ok:            true,
+			LeaseDuration: allowedLeaseTime.String(),
+		}
+	}
+
+	// if state is deactivated, return ok = false
+	// if err := c.RequireState(ctx, state.Deactivated); err != nil {
+	// 	resp.Ok = false
+	// }
+
+	//c.metrics.marbleAPI.activationSuccess.WithLabelValues(req.GetMarbleType(), req.GetUUID()).Inc()
+	c.log.Info("Successfully responded to Marble lease", zap.String("MarbleType", req.GetMarbleType()), zap.String("UUID", req.GetUUID()))
+
+	// if c.eventlog != nil {
+	// 	c.eventlog.Activation(req.GetMarbleType(), req.GetUUID(), req.GetQuote())
+	// }
+
+	return resp, nil
+}
