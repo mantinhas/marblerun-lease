@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "github.com/edgelesssys/marblerun/marble/rpc";
+
+service OperationTracker {
+    rpc StartOperation (StartOperationReq) returns (StartOperationResp);
+}
+
+message StartOperationReq {
+    int32 nOperations = 1;
+}
+
+message StartOperationResp {
+    bool ok = 1;
+}
