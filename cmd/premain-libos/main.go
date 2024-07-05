@@ -11,14 +11,30 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	marblePremain "github.com/edgelesssys/marblerun/marble/premain"
 	"github.com/fatih/color"
 	"github.com/spf13/afero"
 	"golang.org/x/sys/unix"
 )
+
+type count32 int32
+
+func (c *count32) add(amount int32) int32 {
+	return atomic.AddInt32((*int32)(c), amount)
+}
+
+func (c *count32) get() int32 {
+	return atomic.LoadInt32((*int32)(c))
+}
+
+func (c *count32) reset() {
+	atomic.StoreInt32((*int32)(c), 0)
+}
 
 // libOS constants for specific checks.
 // Use 1000 as a starting point for distinction.
@@ -69,10 +85,25 @@ func main() {
 		}
 	}
 
-	// Launch service
-	if err := unix.Exec(service, os.Args, os.Environ()); err != nil {
-		exit("%s", err)
+	if service[0] != '/' {
+		service = "./" + service
 	}
+	// Test StartOperation RPC Request
+	// Send a GRPC request through unsafe channel gRPC
+
+	// Launch service
+	log.Println("Launching service: ", service)
+	cmd := exec.Command(service, os.Args[1:]...)
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("Error starting the command: %v\n", err)
+		os.Exit(1)
+	}
+	log.Println("Successfully started service. Waiting for it to finish...")
+	cmd.Wait()
 }
 
 func detectLibOS() (int, error) {

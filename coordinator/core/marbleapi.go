@@ -691,7 +691,7 @@ func (c *Core) RemainingLease(ctx context.Context, req *rpc.RemainingLeaseReq) (
 	}
 
 	// write response
-	allowedLeaseTime, err := c.GetAllowedLeaseTime()
+	allowedLeaseTime, maxOperations, err := c.GetAllowedLeaseTime()
 
 	if err != nil {
 		// Print returned err
@@ -705,6 +705,7 @@ func (c *Core) RemainingLease(ctx context.Context, req *rpc.RemainingLeaseReq) (
 		resp = &rpc.RemainingLeaseOffer{
 			Ok:            true,
 			LeaseDuration: allowedLeaseTime.String(),
+			MaxOperations: maxOperations,
 		}
 	}
 

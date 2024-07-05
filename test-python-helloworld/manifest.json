@@ -1,0 +1,22 @@
+{
+    "Packages": {
+        "world": {
+            "Debug": true,
+            "UniqueID": "5be4feec9737e48556e55b8c32739354ad169412326f2fc9e44c3607b3a5344f"
+        }
+    },
+    "Marbles": {
+        "hello": {
+            "Package": "world",
+            "Parameters": {
+                "Env": {
+                    "HELLO_WORLD": "Hello World from MarbleRun!"
+                },
+                "Argv": [
+                    "./python",
+                    "scripts/helloworld.py"
+                ]
+            }
+        }
+    }
+}

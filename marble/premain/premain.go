@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -32,10 +33,31 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+
+	marblerpc "github.com/edgelesssys/marblerun/marble/rpc"
 )
+
+type marbleserver struct {
+	marblerpc.UnimplementedOperationTrackerServer
+}
+
+type atomicInt int32
+
+func (c *atomicInt) add(value int32) int32 {
+	return atomic.AddInt32((*int32)(c), value)
+}
+
+func (c *atomicInt) get() int32 {
+	return atomic.LoadInt32((*int32)(c))
+}
+
+func (c *atomicInt) store(value int32) {
+	atomic.StoreInt32((*int32)(c), value)
+}
 
 var leaseTimer *time.Timer
 var renewed = make(chan time.Duration)
+var maxOperations, counter atomicInt
 
 // storeUUID stores the uuid to the fs.
 func storeUUID(appFs afero.Fs, marbleUUID uuid.UUID, filename string) error {
@@ -227,13 +249,94 @@ func PreMainEx(issuer quote.Issuer, activate ActivateFunc, hostfs, enclavefs afe
 		}
 
 		log.Println("starting lease client")
-		if err := setupLeaseKeepAlive(); err != nil {
-			return err
-		}
+		go func() error {
+			if err := setupLeaseKeepAlive(); err != nil {
+				log.Fatalln("%v", err)
+				return err
+			}
+			return nil
+		}()
+		log.Println("Starting operations counter")
+		go startOperationTrackerServer(tlsCredentials)
 	}
 
 	return nil
 }
+
+func startOperationTrackerServer(tlsCredentials credentials.TransportCredentials) {
+	lis, err := net.Listen("tcp", "localhost:50052")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer(grpc.Creds(tlsCredentials))
+	marblerpc.RegisterOperationTrackerServer(grpcServer, &marbleserver{})
+	log.Printf("Server is running on port 50052")
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+}
+
+// SayHello implements helloworld.GreeterServer
+func (s *marbleserver) StartOperation(ctx context.Context, in *marblerpc.StartOperationReq) (*marblerpc.StartOperationResp, error) {
+	log.Printf("Received request for %v operations", in.GetNOperations())
+	var requested_operations int32 = in.GetNOperations()
+	counter.add(requested_operations)
+
+	if counter.get() > maxOperations.get() {
+		log.Println("Number of operations requested exceeds limit.")
+		os.Exit(1)
+		return &marblerpc.StartOperationResp{Ok: false}, nil
+	}
+
+	return &marblerpc.StartOperationResp{Ok: true}, nil
+}
+
+//func countOperations() {
+//	//syscall.Unlink("/tmp/operation_finishes")
+//	//mode := uint32(unix.S_IFIFO | 0666)
+//
+//	// Define the mode for the FIFO (read/write for owner, group, others)
+//	// syscall mkfifo
+//	mode := uint32(syscall.S_IFIFO | 0666)
+//	err := syscall.Mkfifo("/tmp/operation_finishes", mode)
+//	log.Println("syscall mkfifo")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	log.Println("yao")
+//	defer os.Remove("/tmp/operation_finishes")
+//
+//	for {
+//		fifo, err := os.Open("/tmp/operation_finishes")
+//		if err != nil {
+//			log.Println("yao")
+//			log.Fatal(err)
+//			return
+//		}
+//		defer fifo.Close()
+//
+//		buf := make([]byte, 1024)
+//		n, err := fifo.Read(buf)
+//		if err != nil {
+//			log.Println("yao")
+//			log.Fatal(err)
+//			return
+//		}
+//
+//		log.Printf("%s operation(s) finished.\n", string(buf[:n]))
+//
+//		var res int
+//		res, _ = strconv.Atoi(string(buf[:n]))
+//		var finished_operations int32 = int32(res)
+//
+//		counter.add(finished_operations)
+//
+//		if counter.get() > maxOperations.get() {
+//			log.Println("Exiting after max operations exceeded for this lease.")
+//			os.Exit(1)
+//		}
+//	}
+//}
 
 // ActivateFunc is called by premain to activate the Marble and get its parameters.
 type ActivateFunc func(req *rpc.ActivationReq, coordAddr string, tlsCredentials credentials.TransportCredentials) (*rpc.Parameters, *rpc.DeactivationSettings, error)
@@ -316,7 +419,7 @@ func requestCoordinatorForLease(coordAddr string, tlsCredentials credentials.Tra
 				}
 
 				resp, err := client.RemainingLease(ctx, &rpc.RemainingLeaseReq{})
-				log.Printf("RemainingLease response: %s\n", resp.LeaseDuration)
+				log.Printf("RemainingLease response: %s for %d operations\n", resp.LeaseDuration, resp.MaxOperations)
 
 				if err != nil {
 					log.Printf("LeaseReq failed: %v", (err))
@@ -328,6 +431,7 @@ func requestCoordinatorForLease(coordAddr string, tlsCredentials credentials.Tra
 				}
 
 				leaseTime, err = time.ParseDuration(resp.LeaseDuration)
+				maxOperations.store(resp.MaxOperations)
 				return nil
 			}()
 
@@ -465,8 +569,10 @@ func (s *server) Deactivate(ctx context.Context, in *rpc.DeactivateReq) (*rpc.De
 }
 
 func (s *server) PropagateLease(ctx context.Context, in *rpc.LeaseOffer) (*rpc.LeaseResp, error) {
-	log.Printf("Received lease offer for %s\n", in.LeaseDuration)
+	log.Printf("Received lease offer: %s for %d operations\n", in.LeaseDuration, in.MaxOperations)
 	leaseTime, err := time.ParseDuration(in.LeaseDuration)
+	counter.store(0)
+	maxOperations.store(int32(in.MaxOperations))
 
 	if err != nil {
 		log.Printf("Failed to parse lease duration: %v\n", err)

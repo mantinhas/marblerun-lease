@@ -58,18 +58,19 @@ type LeaseState struct {
 	afterStartAliveDuration time.Duration
 	currentLeaseTimer       *time.Timer
 	rwtex                   sync.RWMutex
+	maxOperations           int32
 }
 
-func (c *Core) GetAllowedLeaseTime() (time.Duration, error) {
+func (c *Core) GetAllowedLeaseTime() (time.Duration, int32, error) {
 	c.leaseState.rwtex.RLock()
 	defer c.leaseState.rwtex.RUnlock()
 
 	var result time.Duration = c.leaseState.afterStartAliveDuration - time.Since(c.leaseState.start)
 
 	if result <= 0 {
-		return 0, errors.New("allowed lease time is non positive")
+		return 0, 0, errors.New("allowed lease time is non positive")
 	}
-	return result, nil
+	return result, c.leaseState.maxOperations, nil
 
 }
 
@@ -724,7 +725,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 			c.leaseState.rwtex.Unlock()
 
 			// For this lease, with duration X, after X/2 seconds, the client will send a LeaseReq
-			resultChan := make(chan string)
+			resultChan := make(chan *providerRPC.LeaseOffer)
 			errorChan := make(chan error)
 			done := make(chan bool)
 			successfulLease = false
@@ -757,7 +758,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 						}
 
 						done <- true
-						resultChan <- resp.LeaseDuration
+						resultChan <- resp
 						errorChan <- nil
 						successfulLease = true
 						return nil
@@ -785,8 +786,9 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 					return
 				} else {
 					c.leaseState.rwtex.Lock()
-					leaseTime, err = time.ParseDuration(result)
+					leaseTime, err = time.ParseDuration(result.LeaseDuration)
 					c.leaseState.afterStartAliveDuration += leaseTime
+					c.leaseState.maxOperations = result.MaxOperations
 					c.leaseState.rwtex.Unlock()
 					c.log.Info("Lease offered", zap.Duration("leaseTime", leaseTime))
 
@@ -940,7 +942,7 @@ func (c *Core) ExtractLeaseKeepAliveSettings(manifestDeactivation manifest.Deact
 	return connectionURL, connectionCertificate, retries, leaseInterval, retryInterval
 
 }
-func (c *Core) propagateLease(ctx context.Context, leaseTime string, retries int, leaseInterval time.Duration, retryInterval time.Duration) error {
+func (c *Core) propagateLease(ctx context.Context, result *providerRPC.LeaseOffer, retries int, leaseInterval time.Duration, retryInterval time.Duration) error {
 
 	data, rollback, _, err := wrapper.WrapTransaction(ctx, c.txHandle)
 	if err != nil {
@@ -994,7 +996,8 @@ func (c *Core) propagateLease(ctx context.Context, leaseTime string, retries int
 				client := rpc.NewMarbleClient(conn)
 
 				resp, err := client.PropagateLease(ctx, &rpc.LeaseOffer{
-					LeaseDuration: leaseTime,
+					LeaseDuration: result.LeaseDuration,
+					MaxOperations: result.MaxOperations,
 				})
 
 				if resp.Ok && err == nil {

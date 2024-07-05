@@ -17,6 +17,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -164,6 +165,7 @@ func runServer(cmd *cobra.Command, args []string, servertype string) error {
 	case "ping":
 		rpc.RegisterProviderServer(s, &pingServer{})
 	case "lease":
+		initialSetup()
 		rpc.RegisterProviderServer(s, &leaseServer{})
 	default:
 		log.Fatalf("Unknown server type %s", servertype)
@@ -189,10 +191,42 @@ func runServer(cmd *cobra.Command, args []string, servertype string) error {
 	return nil
 }
 
+func initialSetup() {
+	var duration time.Duration
+	var maxOperations int64
+	var err error
+	fmt.Println("Welcome to the lease server. Start by setting the default lease duration and maxOperations.")
+	for {
+		fmt.Printf("Initial lease duration:")
+		in := bufio.NewReader(os.Stdin)
+		value, _ := in.ReadString('\n')
+		value = strings.TrimSuffix(value, "\n")
+		duration, err = time.ParseDuration(value)
+		if err == nil {
+			break
+		}
+		fmt.Println("Invalid duration. Example: 12h30m15s")
+	}
+	for {
+		fmt.Printf("Initial maximum number of operations per lease:")
+		in := bufio.NewReader(os.Stdin)
+		value, _ := in.ReadString('\n')
+		value = strings.TrimSuffix(value, "\n")
+		maxOperations, err = strconv.ParseInt(value, 10, 32)
+		if err == nil {
+			break
+		}
+		fmt.Printf("Invalid maxOperations \"%s\". Example: 100\n", value)
+	}
+	fmt.Println("Initial setup complete: %s duration, %d maxOperations", duration, maxOperations)
+	lease.maxOperations = int32(maxOperations)
+	lease.defaultLeaseTime = duration
+}
+
 func displayHelpMessage() {
 	fmt.Println("--- Lease Server CLI ---")
 	fmt.Println("List of commands:")
-	fmt.Println("\tchange [duration] - Change the lease duration. Duration is duration notation, e.g. 10s, 5m, 2h, 1d")
+	fmt.Println("\tchange [duration] [maxOperations]- Change the lease to a new duration and maxOperations. Duration is duration notation, e.g. 10s, 5m, 2h, 1d. MaxOperations is int32")
 	fmt.Println("\thelp - Display this help message")
 }
 
@@ -205,7 +239,7 @@ func userInputCommands() {
 		// print command parts
 		switch commandParts[0] {
 		case "change":
-			if len(commandParts) != 2 {
+			if len(commandParts) != 3 {
 				fmt.Println("Incorect number of arguments. Usage: change [duration]")
 				continue
 			}
@@ -215,6 +249,13 @@ func userInputCommands() {
 				fmt.Printf("Invalid duration \"%s\". Example: 12h30m15s\n", commandParts[1])
 				continue
 			}
+
+			res, err := strconv.ParseInt(commandParts[2], 10, 32)
+			if err != nil {
+				fmt.Printf("Invalid maxOperations \"%s\". Example: 100\n", commandParts[2])
+				continue
+			}
+			lease.maxOperations = int32(res)
 			lease.defaultLeaseTime = duration
 			fmt.Printf("Lease duration changed to %s\n", lease.defaultLeaseTime)
 		case "help":
@@ -248,6 +289,7 @@ type leaseState struct {
 	lastLeaseStartTime time.Time
 	lastLeaseEndTime   time.Time
 	defaultLeaseTime   time.Duration
+	maxOperations      int32
 }
 
 var lease = leaseState{defaultLeaseTime: time.Duration(10) * time.Second}
@@ -281,5 +323,5 @@ func (s *leaseServer) Lease(ctx context.Context, in *rpc.LeaseReq) (*rpc.LeaseOf
 	if err != nil {
 		return &rpc.LeaseOffer{Ok: false}, nil
 	}
-	return &rpc.LeaseOffer{Ok: true, LeaseDuration: lease.defaultLeaseTime.String()}, nil
+	return &rpc.LeaseOffer{Ok: true, LeaseDuration: lease.defaultLeaseTime.String(), MaxOperations: lease.maxOperations}, nil
 }

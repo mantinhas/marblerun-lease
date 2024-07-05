@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+//#include <unistd.h>
 
 int main(int argc, char* argv[], char* envp[]) {
   puts("Hello world!\n\n\033[0;33mCommandline arguments:\033[0m");
@@ -21,6 +22,11 @@ int main(int argc, char* argv[], char* envp[]) {
       printf("%s\n", envp[i]);
     }
   }
+
+  for (int i = 0; i<20; i++){
+	  printf("%d", i);
+  }
+
 
   return 0;
 }

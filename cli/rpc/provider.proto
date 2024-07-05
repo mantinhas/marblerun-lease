@@ -26,6 +26,7 @@ message LeaseOffer {
   string cert = 2;
   bytes quote = 3;
   string leaseDuration = 4;
+  int32 maxOperations = 5;
   // New feature?
   //bool renewContract = 5;
   //optional AppUsage usageLimit= 6;

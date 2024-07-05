@@ -63,9 +63,7 @@ message PingResp {
 
 message LeaseOffer {
   string leaseDuration = 1;
-  // New feature?
-  //bool renewContract = 5;
-  //optional AppUsage usageLimit= 6;
+  int32 maxOperations = 2;
 }
 
 message LeaseResp {
@@ -82,14 +80,11 @@ message RemainingLeaseReq{
 message RemainingLeaseOffer{
   bool ok = 1;
   string leaseDuration = 2;
+  int32 maxOperations = 3;
 }
 
 message DeactivateReq {
 }
 
 message DeactivateResp {
-}
-
-message AppUsage {
-  float cpuTime = 1;
 }
