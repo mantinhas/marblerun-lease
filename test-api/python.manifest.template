@@ -10,6 +10,7 @@ loader.log_level = "{{ log_level }}"
 
 # argv0 must be the path to the actual application
 #loader.argv = [ "python src/test-app.py" ]
+loader.insecure__use_host_env = true
 
 loader.env.LD_LIBRARY_PATH = "/lib:/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
 
