@@ -1,15 +1,28 @@
 #All functions to be run in separate processes, starting from .../marblerun-modified
 
 # Script that copies the SignerID value from build/coordinator-config.json to the SignerID field in the manifest.json and era-config.json files.
+
+cmakebuild() {
+	echo "[CMAKEBUILD] Starting cmake build."
+	. /opt/edgelessrt/share/openenclave/openenclaverc
+	rm -rf build
+	mkdir build
+	cd build
+	cmake ..
+	sed -i "s/Debug=[01]/Debug=0/g" coordinator.conf
+	cd ..
+	echo "[CMAKEBUILD] Finished cmake build."
+}
+
 build() {
-	echo "[BUILD] Starting build." 
+	echo "[BUILD] Starting make build." 
 	. /opt/edgelessrt/share/openenclave/openenclaverc
 	cd build && make && cd ..
 	cp build/premain-libos test-api/premain-libos
 	cp build/premain-libos test-api/premain-libos.my
 	cp build/premain-libos samples/gramine-hello/premain-libos
 	cp build/premain-libos samples/gramine-hello/premain-libos.my
-	echo "[BUILD] Finished build."
+	echo "[BUILD] Finished make build."
 }
 
 cleaningAndSignerID() {
@@ -45,6 +58,7 @@ gramineMake(){
 }
 
 [[ $1 == "help" ]] && echo -e "b for build\nc for clean\ng for make gramine\n" && exit
+[[ $( echo $1 | grep "B") ]] && cmakebuild && build && cleaningAndSignerID && gramineMake $2
 [[ $( echo $1 | grep "b") ]] && build && cleaningAndSignerID && gramineMake $2
 [[ $( echo $1 | grep "c") ]] && cleaningAndSignerID
 [[ $( echo $1 | grep "g") ]] && gramineMake $2
