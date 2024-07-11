@@ -1,0 +1,85 @@
+# Copyright (C) 2023 Gramine contributors
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Python3 manifest example
+
+loader.entrypoint = "file:{{ gramine.libos }}" 
+libos.entrypoint = "{{ entrypoint }}"
+
+loader.log_level = "{{ log_level }}"
+
+# argv0 must be the path to the actual application
+#loader.argv = [ "python src/test-app.py" ]
+loader.insecure__use_host_env = true
+
+loader.env.LD_LIBRARY_PATH = "/lib:/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
+loader.env.PYTHONPATH = ".venv/lib/python3.8/lib-dynload:.venv/lib/python3.8/site-packages"
+loader.env.PATH = ".venv/bin:$PATH"
+loader.env.VIRTUAL_ENV = ".venv"
+
+# Forward EDG environment variables, used by MarbleRun
+loader.env.EDG_MARBLE_TYPE = { passthrough = true }
+loader.env.EDG_MARBLE_COORDINATOR_ADDR = { passthrough = true }
+loader.env.EDG_MARBLE_UUID_FILE = { passthrough = true }
+loader.env.EDG_MARBLE_DNS_NAMES = { passthrough = true }
+
+# Python's NumPy spawns as many threads as there are CPU cores, and each thread
+# consumes a chunk of memory, so on large machines 1G enclave size may be not enough.
+# We limit the number of spawned threads via OMP_NUM_THREADS env variable.
+loader.env.OMP_NUM_THREADS = "4"
+
+loader.insecure__use_cmdline_argv = true
+#loader.argv = ["python" "src/main.py"]
+
+sys.enable_sigterm_injection = true
+
+fs.mounts = [
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+  { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
+  { path = "/usr/{{ arch_libdir }}", uri = "file:/usr/{{ arch_libdir }}" },
+{% for path in python.get_sys_path(entrypoint) %}
+  { path = "{{ path }}", uri = "file:{{ path }}" },
+{% endfor %}
+  { path = "{{ entrypoint }}", uri = "file:{{ entrypoint }}" },
+  { path = "/etc/hosts", uri = "file:helper-files/hosts" },
+
+  { type = "tmpfs", path = "/tmp" },
+{ path = "/etc", uri = "file:/etc" },
+]
+
+sys.stack.size = "2M"
+sys.enable_extra_runtime_domain_names_conf = true
+
+sgx.debug = true
+sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
+sgx.enclave_size = "4G"
+sgx.max_threads = 60
+
+#sgx.nonpie_binary = true
+
+
+sgx.remote_attestation = "dcap"
+sgx.ra_client_spid = "{{ ra_client_spid }}"
+sgx.ra_client_linkable = {{ 'true' if ra_client_linkable == '1' else 'false' }}
+
+sgx.trusted_files = [
+  "file:{{ entrypoint }}",
+  "file:{{ gramine.runtimedir() }}/",
+  "file:{{ arch_libdir }}/",
+  "file:/usr/{{ arch_libdir }}/",
+	"file:premain-libos",
+  "file:server_uuid",
+    "file:/etc/hosts",
+    "file:/etc/host.conf",
+    "file:/etc/gai.conf",
+    "file:/etc/resolv.conf",
+    "file:/etc/localtime",
+    "file:/etc/nsswitch.conf",
+{% for path in python.get_sys_path(entrypoint) %}
+  "file:{{ path }}{{ '/' if path.is_dir() else '' }}",
+{% endfor %}
+  "file:src/",
+  "file:operations_api/",
+  "file:helper-files/",
+  "file:.venv/",
+]
