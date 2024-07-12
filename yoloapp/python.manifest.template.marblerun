@@ -13,6 +13,9 @@ loader.log_level = "{{ log_level }}"
 loader.insecure__use_host_env = true
 
 loader.env.LD_LIBRARY_PATH = "/lib:/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
+loader.env.PYTHONPATH = ".venv/lib/python3.8/lib-dynload:.venv/lib/python3.8/site-packages"
+loader.env.PATH = ".venv/bin:$PATH"
+loader.env.VIRTUAL_ENV = ".venv"
 
 # Forward EDG environment variables, used by MarbleRun
 loader.env.EDG_MARBLE_TYPE = { passthrough = true }
@@ -26,6 +29,7 @@ loader.env.EDG_MARBLE_DNS_NAMES = { passthrough = true }
 loader.env.OMP_NUM_THREADS = "4"
 
 #loader.insecure__use_cmdline_argv = true
+#loader.argv = ["python" "src/main.py"]
 loader.argv = ["{{ entrypoint }}"]
 
 sys.enable_sigterm_injection = true
@@ -49,8 +53,11 @@ sys.enable_extra_runtime_domain_names_conf = true
 
 sgx.debug = true
 sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
-sgx.enclave_size = "1G"
-sgx.max_threads = {{ '1' if env.get('EDMM', '0') == '1' else '32' }}
+sgx.enclave_size = "8G"
+sgx.max_threads = 60
+
+#sgx.nonpie_binary = true
+
 
 sgx.remote_attestation = "dcap"
 sgx.ra_client_spid = "{{ ra_client_spid }}"
@@ -75,4 +82,7 @@ sgx.trusted_files = [
   "file:src/",
   "file:operations_api/",
   "file:helper-files/",
+  "file:.venv/",
+  "file:yolov5s.pt",
+  "file:torch_dir/",
 ]
