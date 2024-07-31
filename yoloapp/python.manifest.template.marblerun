@@ -38,6 +38,7 @@ fs.mounts = [
   { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
   { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
   { path = "/usr/{{ arch_libdir }}", uri = "file:/usr/{{ arch_libdir }}" },
+  { path = "/usr/bin/python3.8", uri = "file:/usr/bin/python3.8" },
 {% for path in python.get_sys_path(entrypoint) %}
   { path = "{{ path }}", uri = "file:{{ path }}" },
 {% endfor %}
@@ -82,6 +83,7 @@ sgx.trusted_files = [
   "file:src/",
   "file:operations_api/",
   "file:helper-files/",
+  "file:/usr/bin/python3.8",
   "file:.venv/",
   "file:yolov5s.pt",
   "file:torch_dir/",

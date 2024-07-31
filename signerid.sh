@@ -22,6 +22,10 @@ build() {
 	cp build/premain-libos test-api/premain-libos.my
 	cp build/premain-libos samples/gramine-hello/premain-libos
 	cp build/premain-libos samples/gramine-hello/premain-libos.my
+	cp build/premain-libos yoloapp/premain-libos
+	cp build/premain-libos yoloapp/premain-libos.my
+	cp build/premain-libos test-python-helloworld/premain-libos
+	cp build/premain-libos test-python-helloworld/yoloapp/premain-libos.my
 	echo "[BUILD] Finished make build."
 }
 

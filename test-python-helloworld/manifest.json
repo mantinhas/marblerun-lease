@@ -2,7 +2,7 @@
     "Packages": {
         "world": {
             "Debug": true,
-            "UniqueID": "5be4feec9737e48556e55b8c32739354ad169412326f2fc9e44c3607b3a5344f"
+            "UniqueID": "2a554ef12a1593552762a2707044e7fdd6edbb91c174dd0872ef57759153072f"
         }
     },
     "Marbles": {
@@ -16,6 +16,26 @@
                     "./python",
                     "scripts/helloworld.py"
                 ]
+            }
+        }
+    },
+    "DeactivationSettings": {
+        "Coordinator": {
+            "ConnectionUrl": "localhost:50051",
+            "ConnectionCertificate": "-----BEGIN CERTIFICATE-----\nMIIFazCCA1OgAwIBAgIUA7HWDxJCOHKJsxYsnSuNUx6lW1swDQYJKoZIhvcNAQEL\nBQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM\nGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMzA4MjgyMjU2NThaFw0zMzA4\nMjUyMjU2NThaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw\nHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggIiMA0GCSqGSIb3DQEB\nAQUAA4ICDwAwggIKAoICAQDJ44G075NWXpfU+yxoFq5z9aofeODTVIdSRPy7dV9j\nO8JuYjEQowZEgWWajMGqeSYbGDKBiE6K3HBoLZ0XsCEe+Q8RpubUGP0iOM8bv1Dj\nFP04BqcRL637OVaBHVhRLXX3/rXI0M3QO73mdTytUPboT0MgZOKTPdbW8EeXlzXp\nppXUzFk5VxdcYQwtCR72BLSu1tITB0CgpmngpD2eQ5iGUGifs1dVZwinb49XJjd6\nZQBQ1KlcU5xg898g4LaVRUNHnQtT+i0L+sDJ/g5BnHUg1O+jDMtFroY3LEUelxKB\nP1ZDOhTepY1Av4J0T8/hDXOLxWlX/fnu0E1If6E5ZFOBzaZvl19Z/RjOmNPltNgo\n25Kq3EtuZd+2PHEYvoiMjHJ8h+5qikWhBgVnbuWo38tEzW+nZ8xLjwB3+kfOrgv+\nFESzybz/6E7jUXGv9uiKRRFkHUwcjFMoj3uiEwaEO9Bl/FHWCLjY8AphYJ530lhQ\n0O247fq4+fz2KUB0qfcg04KWmxgjEGARGi9Ze+GtppBVT8DwdXWTQ6YHJIdVWMdW\nez7ZrkqMuH5OBWPavs6izyrrgxz4RvOvRYF4kbHWZZGfvmXjNSZwVQgXBYVwQq1K\nVic62s5tGn1K9oWM5QV+/AN6u1RyJB5btWNQDEXtYo2HZMyQu11ujUItEtfNeibo\nLQIDAQABo1MwUTAdBgNVHQ4EFgQUsAlxrCXBSSuBa8qb9UCL8IHkZNgwHwYDVR0j\nBBgwFoAUsAlxrCXBSSuBa8qb9UCL8IHkZNgwDwYDVR0TAQH/BAUwAwEB/zANBgkq\nhkiG9w0BAQsFAAOCAgEAA4SffsIUFvikRpg3Qbl3m1AME/vnMkfLJQlotqTw0/VF\nJIkw6joFovXG9IbKA9rubXxgh7hP6OalRYaBgdSwZfuR9HsfbSOXlYdI8muYjxSS\njGfamNDGNQFywFYvgaMMLGVpA2pDMja3umYwkcTYSZRR1XkO0HYEsUEAhKCJTcCL\n6G7D9DNdRprNAIGkV1JdLbFEIigDSkPByP7uUF+ctQ8H2cMc7ZYG7pq3hkXZgxRx\nBTD8kLSQipCtxSHHWlgR1V309DKVgDOft2QkQVFR8IITzO5FlEYRlkHQNQ4vUpR/\nBPwQ6ZN+VHqVno3Od+4PZ6gbZ6mJufyllcnHQKNkDKf3j5TSq/8Dw2Tx/qZrJtTe\n/QxryxVQAVu5JCn8C+tbPOET/aZEkU+8C8hnmMplNbWIHhvE6/e+PyWjONr6Yl9d\nVbBAamA2Noa1L0cAkRaLkQ67d5wpzJUlpPDWBtOJjhodOCTrv7jpQ/KZGDzCZmau\njSsSCGwc1jlahsU8phYVoL2A9/iD+EvHtpvL0ICvYsXTqu2KHcLso1PnSjA+Azth\nw73S94sNTwmi9nM0Kns5A4VseCIiAaOXNIkGcJzJG84BWDvZsBy41dwuuZzUZmtT\nrRFkn+WSJLa30cJBgOxaW14GXt0xYzM/soiWM9HinFbW9yiJZDQzkMVJX4z9NQQ=\n-----END CERTIFICATE-----",
+            "TrustProtocol": "lease",
+            "LeaseSettings": {
+                "RequestInterval": "15s",
+                "RetryInterval": "2s",
+                "Retries": 3
+            }
+        },
+        "Marbles": {
+            "TrustProtocol": "lease",
+            "LeaseSettings": {
+                "RequestInterval": "5s",
+                "RetryInterval": "1s",
+                "Retries": 2
             }
         }
     }

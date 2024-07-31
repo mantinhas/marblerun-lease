@@ -4,18 +4,15 @@
 # Python3 manifest example
 
 loader.entrypoint = "file:{{ gramine.libos }}" 
-libos.entrypoint = "{{ entrypoint }}"
+libos.entrypoint = "premain-libos"
 
 loader.log_level = "{{ log_level }}"
 
 # argv0 must be the path to the actual application
 #loader.argv = [ "python src/test-app.py" ]
-loader.insecure__use_host_env = true
+#loader.insecure__use_host_env = true
 
 loader.env.LD_LIBRARY_PATH = "/lib:/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
-loader.env.PYTHONPATH = ".venv/lib/python3.8/lib-dynload:.venv/lib/python3.8/site-packages"
-loader.env.PATH = ".venv/bin:$PATH"
-loader.env.VIRTUAL_ENV = ".venv"
 
 # Forward EDG environment variables, used by MarbleRun
 loader.env.EDG_MARBLE_TYPE = { passthrough = true }
@@ -28,8 +25,9 @@ loader.env.EDG_MARBLE_DNS_NAMES = { passthrough = true }
 # We limit the number of spawned threads via OMP_NUM_THREADS env variable.
 loader.env.OMP_NUM_THREADS = "4"
 
-loader.insecure__use_cmdline_argv = true
+#loader.insecure__use_cmdline_argv = true
 #loader.argv = ["python" "src/main.py"]
+loader.argv = ["{{ entrypoint }}"]
 
 sys.enable_sigterm_injection = true
 
@@ -44,16 +42,18 @@ fs.mounts = [
   { path = "/etc/hosts", uri = "file:helper-files/hosts" },
 
   { type = "tmpfs", path = "/tmp" },
-{ path = "/etc", uri = "file:/etc" },
+#{ path = "/etc", uri = "file:/etc" },
 ]
 
-sys.stack.size = "2M"
+sys.stack.size = "4M"
 sys.enable_extra_runtime_domain_names_conf = true
+#sys.disallow_subprocesses = false
 
 sgx.debug = true
 sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
 sgx.enclave_size = "8G"
 sgx.max_threads = 60
+sgx.thread_num = 16
 
 #sgx.nonpie_binary = true
 
@@ -67,8 +67,6 @@ sgx.trusted_files = [
   "file:{{ gramine.runtimedir() }}/",
   "file:{{ arch_libdir }}/",
   "file:/usr/{{ arch_libdir }}/",
-	"file:premain-libos",
-  "file:server_uuid",
     "file:/etc/hosts",
     "file:/etc/host.conf",
     "file:/etc/gai.conf",
@@ -81,7 +79,11 @@ sgx.trusted_files = [
   "file:src/",
   "file:operations_api/",
   "file:helper-files/",
-  "file:.venv/",
-  "file:yolov5s.pt",
-  "file:torch_dir/",
+"file:premain-libos",
+  #"file:yolov5s.pt",
+  #"file:torch_dir/",
+]
+
+sgx.allowed_files = [
+    "file:server_uuid"
 ]

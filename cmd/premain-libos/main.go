@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync/atomic"
 
+	//"syscall"
+
 	marblePremain "github.com/edgelesssys/marblerun/marble/premain"
 	"github.com/fatih/color"
 	"github.com/spf13/afero"
@@ -93,8 +95,28 @@ func main() {
 
 	// Launch service
 	log.Println("Launching service: ", service)
+	//if err := unix.Exec(service, os.Args, os.Environ()); err != nil {
+	//	exit("%s", err)
+	//}
+	//id, _, err := syscall.Syscall(syscall.SYS_FORK, 0, 0, 0)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//log.Printf("Fork %d\n", id)
+	//if id == 0 {
+	//	log.Println("EXECCC")
+	//	if err := unix.Exec(service, os.Args, os.Environ()); err != nil {
+	//		exit("%s", err)
+	//	}
+	//}
+	//log.Println("ODA")
+
 	cmd := exec.Command(service, os.Args[1:]...)
 	cmd.Env = os.Environ()
+	for _, element := range cmd.Env {
+		log.Println(element)
+	}
+	log.Printf("PATH: %s\n", os.Getenv("PATH"))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
