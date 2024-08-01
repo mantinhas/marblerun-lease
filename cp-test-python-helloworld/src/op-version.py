@@ -1,5 +1,7 @@
 import torch
 import time
+import sys
+import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations_api import operations
@@ -8,7 +10,7 @@ from operations_api import operations
 def setup():
     # Model
     torch.hub.set_dir("torch_dir")
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True)
     return model
 
 def run_model(model, arg):
