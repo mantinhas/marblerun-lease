@@ -2,6 +2,8 @@ import torch
 import time
 import sys
 import os
+import json
+import csv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from operations_api import operations
@@ -28,22 +30,35 @@ def benchmark(model, nimages, nloops):
     assert isinstance(nimages, int), "Number of images must be an integer"
     assert(nimages<=len(imgs)), f"Number of images 'nimages' must be smaller than available set totalling {len(imgs)}"
 
-    start_time = time.perf_counter()
-    for i in range(nloops):
-        for j in range(nimages):
+    all_results = []
+    
+    for batch_size in (1,2,4,8,16,32):
+    
+        start_time = time.perf_counter()
 
-            response = operations.request_operation(1)
-            run_model(model,imgs[j])
+        # Benchmark
+        for i in range(nloops):
+            for j in range(nimages):
 
-    end_time = time.perf_counter()
-    elapsed_time = end_time - start_time
-    elapsed_time_per_op = elapsed_time/(nloops*nimages)
+                response = operations.request_operation(batch_size)
+                run_model(model,imgs[j])
 
-    print(\
-f"""Start Time:\t{start_time}
-End Time:\t{end_time}
-Elapsed Time:\t{elapsed_time}
-Elapsed/n:\t{elapsed_time_per_op}""", end="")
+        end_time = time.perf_counter()
+
+
+        result = {}
+        result["elapsed_time"] = end_time - start_time
+        result["elapsed_time_per_op"] = result["elapsed_time"]/(nloops*nimages)
+        result["batch_size"] = batch_size
+        result["environment_type"] = "epochlock_op"
+
+    with open('results.csv', 'w', newline='') as csvfile:
+        fieldnames = ["environment_type","batch_size","elapsed_time","elapsed_time_per_op"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
+
+        writer.writeheader()
+        for result in all_results:
+            writer.writerow(result)
 
 def main():
     model = setup()

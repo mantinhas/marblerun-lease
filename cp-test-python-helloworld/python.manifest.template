@@ -82,5 +82,5 @@ sgx.trusted_files = [
 
 sgx.allowed_files = [
     "file:server_uuid",
-"file:results.json"
+"file:results.csv"
 ]
