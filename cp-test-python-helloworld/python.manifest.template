@@ -50,7 +50,7 @@ sgx.debug = true
 sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
 sgx.enclave_size = "8G"
 sgx.max_threads = 60
-sgx.thread_num = 16
+#sgx.thread_num = 16
 #sgx.enclave_size = "4G"
 #sgx.max_threads = {{ '1' if env.get('EDMM', '0') == '1' else '32' }}
 
@@ -81,5 +81,6 @@ sgx.trusted_files = [
 ]
 
 sgx.allowed_files = [
-    "file:server_uuid"
+    "file:server_uuid",
+"file:results.json"
 ]

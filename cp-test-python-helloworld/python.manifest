@@ -81,7 +81,6 @@ debug = true
 edmm_enable = false
 enclave_size = "8G"
 max_threads = 60
-thread_num = 16
 remote_attestation = "dcap"
 ra_client_spid = ""
 ra_client_linkable = false
@@ -105,6 +104,7 @@ trusted_files = [
 ]
 allowed_files = [
     "file:server_uuid",
+    "file:results.json",
 ]
 isvprodid = 0
 isvsvn = 0

@@ -2,7 +2,7 @@
     "Packages": {
         "world": {
             "Debug": true,
-            "UniqueID": "c11b609959bb1b0b776f9dea3e1cbc6865bdaa99705685f0201a523d568f7793"
+            "UniqueID": "bf41745d67bbf9d94f1183cdf544222ca218ca98fc53f895f184faf16d6d6809"
         }
     },
     "Marbles": {
@@ -14,7 +14,7 @@
                 },
                 "Argv": [
                     "./python",
-                    "src/no-op-version.py"
+                    "src/test-app.py"
                 ]
             }
         }

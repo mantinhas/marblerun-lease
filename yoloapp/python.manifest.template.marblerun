@@ -46,7 +46,7 @@ fs.mounts = [
   { path = "/etc/hosts", uri = "file:helper-files/hosts" },
 
   { type = "tmpfs", path = "/tmp" },
-{ path = "/etc", uri = "file:/etc" },
+#{ path = "/etc", uri = "file:/etc" },
 ]
 
 sys.stack.size = "2M"
@@ -84,7 +84,7 @@ sgx.trusted_files = [
   "file:operations_api/",
   "file:helper-files/",
   "file:/usr/bin/python3.8",
-  "file:.venv/",
+  "file:venv/",
   "file:yolov5s.pt",
   "file:torch_dir/",
 ]
