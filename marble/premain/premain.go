@@ -52,11 +52,11 @@ type SupervisorStatus struct {
 	maxOperations int32
 	counter int32
 	mutex	sync.Mutex
-	renewed chan LeaseOffer
+	leaseOfferBuffer chan LeaseOffer
 }
 
 var supervisorStatus *SupervisorStatus = &SupervisorStatus{
-	renewed:	make(chan LeaseOffer),
+	leaseOfferBuffer:	make(chan LeaseOffer),
 }
 
 // storeUUID stores the uuid to the fs.
@@ -456,7 +456,7 @@ func setupLeaseKeepAlive() error {
 	for {
 		<-supervisorStatus.leaseTimer.C
 		select {
-		case leaseOffer := <-supervisorStatus.renewed:
+		case leaseOffer := <-supervisorStatus.leaseOfferBuffer:
 			log.Println("Lease finished. Starting new lease with duration: ", leaseOffer.leaseDuration.String(), " and maxOperations: ", leaseOffer.maxOperations)
 			supervisorStatus.leaseTimer.Reset(leaseOffer.leaseDuration)
 			supervisorStatus.mutex.Lock()
@@ -585,7 +585,7 @@ func (s *server) PropagateLease(ctx context.Context, in *rpc.LeaseOffer) (*rpc.L
 
 	log.Printf("Lease accepted for %s\n", leaseTime.String())
 	go func() {
-		supervisorStatus.renewed <- LeaseOffer{
+		supervisorStatus.leaseOfferBuffer <- LeaseOffer{
 			leaseDuration:	leaseTime,
 			maxOperations:	int32(in.MaxOperations),
 		}
