@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"syscall"
 	"time"
 
@@ -41,23 +41,23 @@ type marbleserver struct {
 	marblerpc.UnimplementedOperationTrackerServer
 }
 
-type atomicInt int32
 
-func (c *atomicInt) add(value int32) int32 {
-	return atomic.AddInt32((*int32)(c), value)
+type LeaseOffer struct {
+	leaseDuration time.Duration
+	maxOperations int32
 }
 
-func (c *atomicInt) get() int32 {
-	return atomic.LoadInt32((*int32)(c))
+type SupervisorStatus struct {
+	leaseTimer *time.Timer
+	maxOperations int32
+	counter int32
+	mutex	sync.Mutex
+	renewed chan LeaseOffer
 }
 
-func (c *atomicInt) store(value int32) {
-	atomic.StoreInt32((*int32)(c), value)
+var supervisorStatus *SupervisorStatus = &SupervisorStatus{
+	renewed:	make(chan LeaseOffer),
 }
-
-var leaseTimer *time.Timer
-var renewed = make(chan time.Duration)
-var maxOperations, counter atomicInt
 
 // storeUUID stores the uuid to the fs.
 func storeUUID(appFs afero.Fs, marbleUUID uuid.UUID, filename string) error {
@@ -278,16 +278,19 @@ func startOperationTrackerServer(tlsCredentials credentials.TransportCredentials
 
 // SayHello implements helloworld.GreeterServer
 func (s *marbleserver) StartOperation(ctx context.Context, in *marblerpc.StartOperationReq) (*marblerpc.StartOperationResp, error) {
-	log.Printf("Received request for %v operations", in.GetNOperations())
+	log.Printf("Received request for %v operations.", in.GetNOperations())
 	var requested_operations int32 = in.GetNOperations()
-	counter.add(requested_operations)
+	supervisorStatus.mutex.Lock()
+	defer supervisorStatus.mutex.Unlock()
+	supervisorStatus.counter += requested_operations
 
-	if counter.get() > maxOperations.get() {
+	if supervisorStatus.counter > supervisorStatus.maxOperations {
 		log.Println("Number of operations requested exceeds limit.")
 		os.Exit(1)
 		return &marblerpc.StartOperationResp{Ok: false}, nil
 	}
 
+	log.Printf("%d/%d\n operations have been run this lease.", supervisorStatus.counter, supervisorStatus.maxOperations)
 	return &marblerpc.StartOperationResp{Ok: true}, nil
 }
 
@@ -431,12 +434,12 @@ func requestCoordinatorForLease(coordAddr string, tlsCredentials credentials.Tra
 				}
 
 				leaseTime, err = time.ParseDuration(resp.LeaseDuration)
-				maxOperations.store(resp.MaxOperations)
+				supervisorStatus.maxOperations = resp.MaxOperations
 				return nil
 			}()
 
 			if err == nil {
-				leaseTimer = time.NewTimer(leaseTime)
+				supervisorStatus.leaseTimer = time.NewTimer(leaseTime)
 				return
 			}
 			time.Sleep(retryInterval)
@@ -451,11 +454,15 @@ func requestCoordinatorForLease(coordAddr string, tlsCredentials credentials.Tra
 
 func setupLeaseKeepAlive() error {
 	for {
-		<-leaseTimer.C
+		<-supervisorStatus.leaseTimer.C
 		select {
-		case leaseTime := <-renewed:
-			log.Println("Lease finished. Starting new lease with duration: ", leaseTime.String())
-			leaseTimer.Reset(leaseTime)
+		case leaseOffer := <-supervisorStatus.renewed:
+			log.Println("Lease finished. Starting new lease with duration: ", leaseOffer.leaseDuration.String(), " and maxOperations: ", leaseOffer.maxOperations)
+			supervisorStatus.leaseTimer.Reset(leaseOffer.leaseDuration)
+			supervisorStatus.mutex.Lock()
+			supervisorStatus.counter = 0
+			supervisorStatus.maxOperations = leaseOffer.maxOperations
+			supervisorStatus.mutex.Unlock()
 		default:
 			log.Println("Lease finished. Exiting")
 			os.Exit(1)
@@ -571,9 +578,6 @@ func (s *server) Deactivate(ctx context.Context, in *rpc.DeactivateReq) (*rpc.De
 func (s *server) PropagateLease(ctx context.Context, in *rpc.LeaseOffer) (*rpc.LeaseResp, error) {
 	log.Printf("Received lease offer: %s for %d operations\n", in.LeaseDuration, in.MaxOperations)
 	leaseTime, err := time.ParseDuration(in.LeaseDuration)
-	counter.store(0)
-	maxOperations.store(int32(in.MaxOperations))
-
 	if err != nil {
 		log.Printf("Failed to parse lease duration: %v\n", err)
 		return &rpc.LeaseResp{Ok: false}, nil
@@ -581,7 +585,10 @@ func (s *server) PropagateLease(ctx context.Context, in *rpc.LeaseOffer) (*rpc.L
 
 	log.Printf("Lease accepted for %s\n", leaseTime.String())
 	go func() {
-		renewed <- leaseTime
+		supervisorStatus.renewed <- LeaseOffer{
+			leaseDuration:	leaseTime,
+			maxOperations:	int32(in.MaxOperations),
+		}
 	}()
 	return &rpc.LeaseResp{Ok: true}, nil
 }
