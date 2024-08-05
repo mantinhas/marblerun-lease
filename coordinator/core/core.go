@@ -738,7 +738,7 @@ func (c *Core) SetupLeaseKeepAlive(connectionURL string, certificate *x509.Certi
 
 						// Attempt to re-dial if necessary
 						if connection.GetState() != connectivity.Ready {
-							connection, err = grpc.Dial(connectionURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+							connection, err = grpc.Dial(connectionURL, grpc.WithTransportCredentials(creds))
 							if err != nil {
 								c.log.Error("re-dial attempt failed: %v", zap.Error(err))
 								return err
