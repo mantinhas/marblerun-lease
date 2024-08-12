@@ -39,6 +39,13 @@ def benchmark(model, nimages, nloops):
             run_model(model,imgs[j])
             end_model_time = time.perf_counter()
 
+            model_data[j].append(
+                    {
+                        "image_id": j,
+                        "duration" : end_model_time - start_model_time,
+                    }
+                    )
+
         end_time = time.perf_counter()
 
         result = {}
